@@ -1,0 +1,36 @@
+/searchPatientRecord 2863
+/topk-AgeRanges 4 Germany SARS-1 15-11-2011 21-01-2015
+/searchPatientRecord 4981
+/numPatientAdmissions FLU-2018 13-02-2019 14-01-2020 
+/numPatientDischarges MERS-COV 12-09-2009 17-08-2012 France
+/numPatientDischarges COVID-2019 30-04-1991 26-03-2005 
+/searchPatientRecord 8223
+/numPatientDischarges SARS-COV-2 10-11-2015 27-03-2020 
+/searchPatientRecord 8946
+/searchPatientRecord 5029
+/numPatientAdmissions H1N1 16-03-2005 03-08-2008 Brazil
+/numPatientAdmissions FLU-2018 30-09-2013 10-08-2018 
+/topk-AgeRanges 1 Turkey EVD 31-01-1993 06-03-2003
+/topk-AgeRanges 2 China H1N1 16-11-1994 24-09-2010
+/numPatientDischarges SARS-COV-2 14-08-2014 01-10-2018 
+/numPatientDischarges MERS-COV 11-05-1991 24-07-2001 Italy
+/numPatientAdmissions H1N1 29-01-1995 26-08-2000 Egypt
+/numPatientAdmissions H1N1 04-09-2016 31-08-2017 Germany
+/searchPatientRecord 1354
+/numPatientAdmissions SARS-1 12-07-2006 31-12-2007 Italy
+/numPatientDischarges MERS-COV 27-04-2007 26-09-2009 France
+/topk-AgeRanges 2 Italy MERS-COV 13-08-2013 15-12-2014
+/searchPatientRecord 1201
+/topk-AgeRanges 4 Brazil EVD 16-11-2003 11-02-2011
+/searchPatientRecord 4819
+/diseaseFrequency FLU-2018 15-05-2010 06-10-2020 Switzerland
+/searchPatientRecord 6566
+/diseaseFrequency EVD 22-06-2006 17-02-2016 USA
+/diseaseFrequency FLU-2018 14-10-1993 01-12-2000 Switzerland
+/searchPatientRecord 3734
+/topk-AgeRanges 2 Australia SARS-1 16-11-2005 01-06-2012
+/topk-AgeRanges 1 Turkey EVD 23-12-2008 17-04-2010
+/numPatientAdmissions SARS-1 20-01-2014 03-03-2016 Italy
+/diseaseFrequency SARS-COV-2 31-01-2011 20-11-2018 
+/searchPatientRecord 5658
+/topk-AgeRanges 4 China H1N1 24-04-2000 24-02-2015

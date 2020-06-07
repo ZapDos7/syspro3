@@ -268,10 +268,10 @@ std::string block::top_k_age_ranges(int k, date d1, date d2, std::string disease
     int metritis3 = 0;
     int metritis4 = 0; //1 -> 0-20, 2->21-40, 3->41-60, 4->60+
     int ola = 0;       //oloi oi metrites mazi gia pososto
-    return "top-k function under construction\n";
+    
     this->my_tree->insert_to_heap_diseases_countries_dates(my_tree->root, &swros, d1, d2, diseaseName);
     heap_node node;
-    
+    return "top-k function under construction\n";
     //kai na epistrepsw k results
     std::string *allstats = new std::string[swros.size];    //8a exei mesastring tis morfis: "X, Y, Z" opoy X = apo, Y = ews, Z = counter
     for (int i = 0; i < swros.size; i++) //upo kanonikes sunthikes, swros.size = 4 alla mporei kai ligotero

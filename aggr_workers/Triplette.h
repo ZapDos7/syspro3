@@ -19,6 +19,4 @@ public:
     virtual ~Triplette();
 };
 
-
-
 #endif

@@ -268,9 +268,29 @@ void tree::insert_to_heap_diseases_countries_dates(tree_node *tr, heap *swros, d
     if (tr == NULL)
         return;
     insert_to_heap_diseases_countries_dates(tr->left, swros, d1, d2, diseaseName);
-    if ((isBetween(*(tr->d), d1, d2) == true) && (tr->rec->get_disease() == diseaseName))
-    {
-        //swros->insert(tr->rec->get_age());
-    }
+    // if (tr->rec!=NULL)
+    // {
+    //     fprintf(stderr, "lala, %s\n", tr->rec->get_id().c_str());
+    // }
+    // else
+    // {
+    //     fprintf(stderr, "Null record!\n");
+    // }
+    swros->insert(tr->rec->get_age());
+    fprintf(stderr, "lala\n");
+    // if (isBetween(*(tr->d), d1, d2) == true)
+    // {
+    //if (tr->rec->get_diseasePtr() != NULL)
+    //{
+        //fprintf(stderr, "Sugkrinw %s me record's %s\n", diseaseName.c_str(), tr->rec->get_diseasePtr()->c_str());
+        //         // an idio string,
+        //         //swros->insert(tr->rec->get_age());
+    //}
+    //     else
+    //     {
+    //         fprintf(stderr, "Den exw me ti na sugkrinw!\n");
+    //     }
+
+    // }
     insert_to_heap_diseases_countries_dates(tr->right, swros, d1, d2, diseaseName);
 }

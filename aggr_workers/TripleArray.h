@@ -11,6 +11,7 @@ public:
     TripleArray(int capacity);
     ~TripleArray();
     virtual void print();
+    void swap(pid_t, Triplette);
 };
 
 #endif

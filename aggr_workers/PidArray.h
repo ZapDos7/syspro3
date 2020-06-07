@@ -11,6 +11,7 @@ public:
     virtual ~PidArray();
 
     virtual void print();
+    void update_pid(pid_t, pid_t);
 };
 
 #endif

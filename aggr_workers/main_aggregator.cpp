@@ -32,6 +32,18 @@ void catchinterrupt(int signo)
     fclose(stdin);
 }
 
+bool child_died = false;
+
+void birth_anew(int signo)
+{
+    //pethane ena paidi mou & prepei na to ksanaftiaksw
+    //alla edw den kserw poio ara prepei na mpw sti main
+    child_died = true;
+    // pid_t pid; //poio paidi?
+    // int status;
+    // while((pid = waitpid(-1, &status, WNOHANG)) > 0) ; //perimene mexri na paithanei auto to paidi
+}
+
 int main(int argc, char const *argv[])
 {
     //Anagnwsi params
@@ -145,6 +157,13 @@ int main(int argc, char const *argv[])
         }
     }
 
+    //apo ti stigmi pou exw ftiaksei paidia mporei kapoio na pethanei
+    //ftiakse neo child an xathei kapoio
+    static struct sigaction act3;    //diavazw times deikti (an oldact --> gemizw times, not what i want here)
+    act3.sa_handler = birth_anew;    //i sinartisi - idio an evaza &catchinterrupt
+    sigfillset(&(act3.sa_mask));     //ola mask
+    sigaction(SIGCHLD, &act3, NULL); //ta 2 m shmata
+
     for (int i = 0; i < w; i++)
     {
         //xwria oi onomasies twn pipes
@@ -182,7 +201,7 @@ int main(int argc, char const *argv[])
     //names_out.print();
     //countries.print_lc();
     //processIds.print();
-    pid_in_out.print();
+    //pid_in_out.print();
     //return 0;
     /*
     for (int i = 0; i < w; i++) {
@@ -206,19 +225,44 @@ int main(int argc, char const *argv[])
     }
 */
 
+    ofstream summ_file;
+    std::string onomaarxeiousum = "sum_file.txt";
+    summ_file.open(onomaarxeiousum);
+
+    //lipsi summaries
+    for (int i = 0; i < w; i++)
+    {
+        while (true)
+        {
+            char *buf = communicator.createBuffer();
+            communicator.recv(buf, pid_in_out.items[i].in);
+            //fprintf(stderr, "Elava apo to worker %d to minima: '%ld' \n", i, sizeof(buf));
+            if (string(buf) == "BYE")
+            { //elava to eidiko mhnuma oti that's a nono
+                break;
+            }
+            //and en einai BYE valto mesa
+            summ_file << buf << "\n";
+            communicator.destroyBuffer(buf);
+        }
+    }
+    summ_file.close();
+    fprintf(stderr, "Gonios ready!\n");
     long int total = 0;
     long int success = 0;
     long int failed = 0;
 
     //an o aggr lavei SIGINT/SIGQUIT (px Ctrl+C) tote paei kai ektelei tin catchinterrupt pou kleinei to while ara paei apo katw kanei shutdown ektos tis while kai eimaste ok
-    static struct sigaction act;
-    act.sa_handler = catchinterrupt;
-    sigfillset(&(act.sa_mask));
-    sigaction(SIGINT, &act, NULL);
-    sigaction(SIGQUIT, &act, NULL);
+    //twra egkathistatai o handler
+    static struct sigaction act;     //diavazw times deikti (an oldact --> gemizw times, not what i want here)
+    act.sa_handler = catchinterrupt; //i sinartisi - idio an evaza &catchinterrupt
+    sigfillset(&(act.sa_mask));      //ola mask
+    sigaction(SIGINT, &act, NULL);   //ta 2 m shmata
+    sigaction(SIGQUIT, &act, NULL);  // pou ekteloun tin function panw panw
+    //mporousa na kanw kai signal set gia auta ta 2 giati exoun idia antimetwpisi
 
-    fprintf(stderr, "Stelnw sto paidi %d ena SIGINT na gelasoume\n", pid_in_out.items[0].pid);
-    kill(pid_in_out.items[0].pid,SIGINT);
+    //fprintf(stderr, "Stelnw sto paidi %d ena SIGINT na gelasoume\n", pid_in_out.items[0].pid);
+    //kill(pid_in_out.items[0].pid,SIGINT);
 
     //commands
     std::string com; //command
@@ -226,6 +270,71 @@ int main(int argc, char const *argv[])
 
     while (printf("?") && std::getline(std::cin, com))
     { //to "?" einai prompt gia ton user
+
+        if (child_died == true)
+        {
+            fprintf(stderr, "kapoio paidi m kati epathe\n");
+            //paw na brw poio pethane na to kanw respawn
+            // for (int i = 0; i < w; i++)
+            // {
+            //     int killres = kill(pid_in_out.items[i].pid, 0);
+            //     if (killres != 0) //brika to ptwma
+            //     {
+            //         int out_fd = open(names_out.items[i].c_str(), O_WRONLY);
+            //         pid_in_out.items[i].out = out_fd;
+            //         int in_fd = open(names_in.items[i].c_str(), O_RDONLY);
+            //         pid_in_out.items[i].in = in_fd;
+
+            //         pid_t child_pid = fork();
+            //         if (child_pid == -1)
+            //         {
+            //             perror(" Failed to fork");
+            //             exit(1);
+            //         }
+            //         if (child_pid == 0) //paidi
+            //         {
+            //             // call worker main agian
+            //             child_pid = getpid();
+            //             //cout << "child rebirthed with PID " << child_pid << endl;
+            //             //kalw ti main tou paidiou
+            //             return main_worker(in_dir, b, names_out.items[i].c_str(), names_in.items[i].c_str());
+            //         }
+            //         else //gonios
+            //         {
+            //             processIds.update_pid(pid_in_out.items[i].pid, child_pid);
+            //             Triplette t(child_pid);
+            //             pid_in_out.swap(pid_in_out.items[i].pid, t);
+            //             pid_in_out.items[i].out = out_fd;
+            //             pid_in_out.items[i].in = in_fd;
+
+            //             //stelnw ksana tis xwres ston neo m gio
+            //             // ta onoma twn pipes einai idia, oi FD's enimerothikan parapanw
+            //             //cout << "aggregator opened pipes for worker: " << processIds.items[i] << endl;
+            //             for (int j = 0; j < countries.size; j++) //tou ksanastelnw tis xwres tou
+            //             {
+            //                 if (j % w == i)
+            //                 { //round robin diaxwrismos twn xwrwn ana worker
+            //                     countries.items[j].pid = child_pid;
+            //                     countries.items[j].out = out_fd;
+            //                     countries.items[j].in = in_fd;
+
+            //                     char *buf = communicator.createBuffer();
+            //                     communicator.put(buf, countries.items[j].country);
+            //                     communicator.send(buf, countries.items[j].out);
+            //                     communicator.destroyBuffer(buf);
+            //                 }
+            //             }
+            //             //aploikos elegxos gia liksi apostolis xwrwn se worker - epeidi den kseroume posa tha parei o ekastote worker
+            //             char *buf = communicator.createBuffer();
+            //             communicator.put(buf, "BYE");
+            //             communicator.send(buf, out_fd);
+            //             communicator.destroyBuffer(buf);
+            //         }
+            //     }
+            // }
+            child_died = false;
+        }
+
         if (com.length() == 0)
         {
             continue; //ama m dwseis enter, sunexizw na zhtaw entoles
@@ -836,7 +945,6 @@ int main(int argc, char const *argv[])
     {
         kill(pid_in_out.items[i].pid, SIGKILL);
     }
-    
 
     //kleinw pipes workers' ws AGGR
     for (int j = 0; j < countries.size; j++)
