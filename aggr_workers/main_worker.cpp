@@ -9,6 +9,9 @@ System Programming Project #2, Spring 2020
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <sys/socket.h> /* sockets */
+#include <netinet/in.h> /* internet sockets */
+#include <netdb.h>      /* gethostbyaddr */
 
 #include "date.h"   //my date class
 #include "ht.h"     //hash table - diki mas domi
@@ -70,6 +73,64 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
     }
 
     //fprintf(stderr, "o worker %d exei %d xwres\n", child_pid, countries.size);
+
+    char *bufsip = communicator.createBuffer();
+    communicator.recv(bufsip, out_fd);
+    string serverip(bufsip);
+    communicator.destroyBuffer(bufsip);
+
+    char *bufsport = communicator.createBuffer();
+    communicator.recv(bufsport, out_fd);
+    int serverport = atoi(bufsport);
+    communicator.destroyBuffer(bufsport);
+
+    //fprintf(stderr, "worker %d has received serverIP: %s and serverPort: %d\n", child_pid, serverip.c_str(), serverport);
+
+    int my_socket = -1; //edw mpainei o FD tou socket
+
+    //prwta sundesi me server gia na steilw ekei ta summaries!
+    //socket(0)
+    if ((my_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        perror("socket");
+        exit(EXIT_FAILURE);
+    }
+    //diaforetika
+    struct sockaddr_in server;
+    struct sockaddr *serverptr = (struct sockaddr *)&server;
+    struct hostent *rem;
+    if ((rem = gethostbyname(serverip.c_str())) == NULL)
+    {
+        herror("gethostbyname");
+        exit(1);
+    }
+    server.sin_family = AF_INET;
+    memcpy(&server.sin_addr, rem->h_addr, rem->h_length);
+
+    server.sin_port = htons(serverport);
+    //connect
+    if (connect(my_socket, serverptr, sizeof(server)) < 0)
+    {
+        perror("connect");
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        fprintf(stderr, "nomizw to ekana\n");
+        /*printf("Connecting to %s port %d\n", argv[1], port);
+    do {
+    	printf("Give input string: ");
+    	fgets(buf, sizeof(buf), stdin);
+    	for(i=0; buf[i] != '\0'; i++) {
+        	if (write(sock, buf + i, 1) < 0)
+        	   perror_exit("write");
+        	if (read(sock, buf + i, 1) < 0)
+        	    perror_exit("read");   
+    	}
+    	printf("Received string: %s", buf);
+    } while (strcmp(buf, "END\n") != 0);
+    close(sock);*/
+    }
 
     std::ifstream dataset; //edw 8a kanw open to dataset
     //array apo Xwra/DD-MM-YYYY string, ti exw diavasei
@@ -298,27 +359,12 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
         //closedir(dir);
         //fprintf(stderr, "telos apo %d gia xwra= %s\n", child_pid, countries.items[posa].c_str());
     }
+
     char *bufsum = communicator.createBuffer();
     communicator.put(bufsum, "BYE");
     communicator.send(bufsum, in_fd);
     communicator.destroyBuffer(bufsum);
     fprintf(stderr, "Worker %d ready\n", child_pid);
-    //return 0;
-    /*
-    char *buf = communicator.createBuffer();
-    communicator.recv(buf, out_fd);
-
-    fprintf(stderr, "Eimai o worker %d kai perimeno to xairetismo !!! \n", child_pid);
-
-    if (string(buf) == "hi\n") {
-        fprintf(stderr, "Eimai o worker %d kai elava to minima !!! \n", child_pid);
-    } else {
-        std::cerr << " eimai o " << child_pid << " kai den elava to hi !!!!!";
-        exit(0);
-    }
-    communicator.put(buf, "yo");
-    communicator.send(buf, in_fd);
-*/
 
     long int total = 0;
     long int success = 0;
@@ -337,6 +383,8 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
     sigaction(SIGINT, &act2, NULL);
     sigaction(SIGQUIT, &act2, NULL);
 
+    //sundesi me server
+    /*
     while (true)
     {
         char *buf = communicator.createBuffer();
@@ -569,7 +617,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
             logfile << "FAIL: " << failed << "\n";     //posa fail
             logfile.close();
 
-            /*std::string results = "";
+            std::string results = "";
             results.append(to_string(total));
             results.append(",");
             results.append(to_string(success));
@@ -578,7 +626,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
             char *buf = communicator.createBuffer();
             communicator.put(buf, results);
             communicator.send(buf, in_fd);
-            */
+            
             return 0;
         }
 
@@ -1072,7 +1120,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
             failed++;
         }
     } //end while(1)
-
+*/
     //shutdown
     ofstream logfile;
     std::string onomaarxeiou = "log_file.";
