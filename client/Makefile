@@ -1,9 +1,9 @@
 CC=g++ -std=c++11
 CFLAGS=-c -Wpedantic -Ofast -Wall -ggdb3 -lpthread
-SOURCES=client.cpp
+SOURCES=client.cpp ../Communication.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE= whoClient
-ARGS= -q client.txt -10 -sp A -sip 46.246.193.8
+ARGS= -q ../client.txt -numThreads 10 -sp 57642 -sip 46.246.193.8
 #-q query file -numthreads -sp ServerPort -sip ServerIP
 VAL=valgrind --leak-check=full
 

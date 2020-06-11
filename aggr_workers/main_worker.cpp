@@ -22,7 +22,7 @@ System Programming Project #2, Spring 2020
 #include "heap.h"
 #include "quicksort.h"
 #include "date_format.h"
-#include "Communication.h"
+#include "../Communication.h"
 #include "StringArray.h"
 #include "main_worker.h"
 //#include "Summ.h"
@@ -86,51 +86,29 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
 
     //fprintf(stderr, "worker %d has received serverIP: %s and serverPort: %d\n", child_pid, serverip.c_str(), serverport);
 
-    int my_socket = -1; //edw mpainei o FD tou socket
+    int sock = 0, valread;
+    struct sockaddr_in serv_addr;
+    char buffer[1024] = {0};
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        printf("\n Socket creation error \n");
+        return -1;
+    }
 
-    //prwta sundesi me server gia na steilw ekei ta summaries!
-    //socket(0)
-    if ((my_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        perror("socket");
-        exit(EXIT_FAILURE);
-    }
-    //diaforetika
-    struct sockaddr_in server;
-    struct sockaddr *serverptr = (struct sockaddr *)&server;
-    struct hostent *rem;
-    if ((rem = gethostbyname(serverip.c_str())) == NULL)
-    {
-        herror("gethostbyname");
-        exit(1);
-    }
-    server.sin_family = AF_INET;
-    memcpy(&server.sin_addr, rem->h_addr, rem->h_length);
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(serverport);
+    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    server.sin_port = htons(serverport);
-    //connect
-    if (connect(my_socket, serverptr, sizeof(server)) < 0)
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        perror("connect");
-        exit(EXIT_FAILURE);
+        printf("\nConnection Failed \n");
+        return -1;
     }
-    else
-    {
-        fprintf(stderr, "nomizw to ekana\n");
-        /*printf("Connecting to %s port %d\n", argv[1], port);
-    do {
-    	printf("Give input string: ");
-    	fgets(buf, sizeof(buf), stdin);
-    	for(i=0; buf[i] != '\0'; i++) {
-        	if (write(sock, buf + i, 1) < 0)
-        	   perror_exit("write");
-        	if (read(sock, buf + i, 1) < 0)
-        	    perror_exit("read");   
-    	}
-    	printf("Received string: %s", buf);
-    } while (strcmp(buf, "END\n") != 0);
-    close(sock);*/
-    }
+    //send(sock, "i am WORKER", strlen("i am WORKER"), 0);
+    send(sock, "BYE", strlen("BYE"), 0);
+    valread = read(sock, buffer, 1024);
+    fprintf(stderr, "CLIENT//poso: %d\t ti: %s\n", valread, buffer);
+    return 0;
 
     std::ifstream dataset; //edw 8a kanw open to dataset
     //array apo Xwra/DD-MM-YYYY string, ti exw diavasei

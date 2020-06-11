@@ -22,7 +22,7 @@ System Programming Project #3, Spring 2020
 #include "PairArray.h"
 #include "PidArray.h"
 #include "StringArray.h"
-#include "Communication.h"
+#include "../Communication.h"
 #include "main_worker.h"
 #include "TripleArray.h"
 #include "Triplette.h"

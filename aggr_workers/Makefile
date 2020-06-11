@@ -1,6 +1,6 @@
 CC=g++ -std=c++11
 CFLAGS=-c -Wpedantic -Ofast -Wall -ggdb3
-SOURCES=main_aggregator.cpp main_worker.cpp date.cpp record.cpp ht.cpp aht.cpp bb.cpp tree.cpp heap.cpp Communication.cpp Pair.cpp PairArray.cpp PidArray.cpp quicksort.cpp StringArray.cpp Triplette.cpp TripleArray.cpp date_format.cpp Summ.cpp SummArray.cpp
+SOURCES=main_aggregator.cpp main_worker.cpp date.cpp record.cpp ht.cpp aht.cpp bb.cpp tree.cpp heap.cpp ../Communication.cpp Pair.cpp PairArray.cpp PidArray.cpp quicksort.cpp StringArray.cpp Triplette.cpp TripleArray.cpp date_format.cpp Summ.cpp SummArray.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=master
 ARGS= -w 3 -b 4096 -s 46.246.193.8 -p 57642 -i ../../input_dir_large

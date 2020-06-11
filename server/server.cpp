@@ -2,125 +2,139 @@
 Ioanna Zapalidi, sdi1400044	
 System Programming Project #3, Spring 2020	
  */
-#include <iostream>
-#include <cstring>
+#include <unistd.h>
 #include <sys/socket.h>
+#include <string.h>
+#include <iostream>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <sys/wait.h>   /* sockets */
-#include <sys/socket.h> /* sockets */
-#include <netinet/in.h> /* internet sockets */
-#include <netdb.h>      /* gethostbyaddr */
-#include <unistd.h>     /* fork */
-#include <stdlib.h>     /* exit */
-#include <ctype.h>      /* toupper */
-#include <signal.h>     /* signal */
-#include <pthread.h>    /* threads */
+#include <sys/wait.h> /* sockets */
+#include <netdb.h>	  /* gethostbyaddr */
+#include <stdlib.h>	  /* exit */
+#include <ctype.h>	  /* toupper */
+#include <signal.h>	  /* signal */
+#include <pthread.h>  /* threads */
+#include "../Communication.h"
 
-/* Wait for all dead child processes */
+//#define PORT 56321 //query port
+#define PORT 57642 //worker port
+
 void sigchld_handler(int sig)
 {
-    while (waitpid(-1, NULL, WNOHANG) > 0)
-        ;
-}
-
-void perror_exit(char *message)
-{
-    perror(message);
-    exit(EXIT_FAILURE);
+	while (waitpid(-1, NULL, WNOHANG) > 0)
+		;
 }
 
 int main(int argc, char const *argv[])
 {
-    int q = -1; //query port num
-    int s = -1; //workers port num
-    int w = -1; //num of threads
-    int b = -1; //bufferSize
 
-    for (int i = 0; i < argc; i++)
-    {
-        if (strcmp("-q", argv[i]) == 0)
-        {
-            q = atoi(argv[i + 1]);
-        }
-        if (strcmp("-w", argv[i]) == 0)
-        {
-            w = atoi(argv[i + 1]);
-        }
-        if (strcmp("-b", argv[i]) == 0)
-        {
-            b = atoi(argv[i + 1]);
-        }
-        if (strcmp("-s", argv[i]) == 0)
-        {
-            s = atoi(argv[i + 1]);
-        }
-    }
-    if ((w < 0) || (b < 0) || (s < 0) || (q < 0))
-    {
-        perror("critical error: arguements");
-        exit(-1);
-    }
+	int q = -1; //query port num
+	int s = -1; //workers port num
+	int w = -1; //num of threads
+	int b = -1; //bufferSize
 
-    int port, sock, newsock;
-    struct sockaddr_in server, client;
-    socklen_t clientlen = sizeof(client);
-    struct sockaddr *serverptr = (struct sockaddr *)&server;
-    struct sockaddr *clientptr = (struct sockaddr *)&client;
-    //struct hostent *rem;
+	for (int i = 0; i < argc; i++)
+	{
+		if (strcmp("-q", argv[i]) == 0)
+		{
+			q = atoi(argv[i + 1]);
+		}
+		if (strcmp("-w", argv[i]) == 0)
+		{
+			w = atoi(argv[i + 1]);
+		}
+		if (strcmp("-b", argv[i]) == 0)
+		{
+			b = atoi(argv[i + 1]);
+		}
+		if (strcmp("-s", argv[i]) == 0)
+		{
+			s = atoi(argv[i + 1]);
+		}
+	}
+	if ((w < 0) || (b < 0) || (s < 0) || (q < 0))
+	{
+		perror("critical error: arguements");
+		exit(EXIT_FAILURE);
+	}
 
-    port = s;
-    /* Create socket */
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        perror_exit("socket");
-    server.sin_family = AF_INET; /* Internet domain */
-    server.sin_addr.s_addr = htonl(INADDR_ANY);
-    server.sin_port = htons(port); /* The given port */
-    /* Bind socket to address */
-    if (bind(sock, serverptr, sizeof(server)) < 0)
-        perror_exit("bind");
-    /* Listen for connections */
-    if (listen(sock, 5) < 0)
-        perror_exit("listen");
-    printf("Listening for connections to port %d\n", port);
-    while (1)
-    {
-        /* accept connection */
-        if ((newsock = accept(sock, clientptr, &clientlen)) < 0)
-            perror_exit("accept");
-        /* Find client's address */
-        printf("Accepted connection\n");
+	//communication
+	Communication communicator(b);
 
-        close(newsock); /* parent closes socket to client */
-    }
-    return 0;
+	//socket time
+	int server_fd, new_socket, valread; //1o: FD tou master socket, 2o: FD tou communication socket, 3o: return val tis read
+	struct sockaddr_in address;
+	int addrlen = sizeof(address);
+	char buffer[1024] = {0};
 
-    //summaries
-    // ofstream summ_file;
-    // std::string onomaarxeiousum = "sum_file.txt";
-    // summ_file.open(onomaarxeiousum);
+	// creating socket fd
+	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+	{
+		perror("socket failed");
+		exit(EXIT_FAILURE);
+	}
+	address.sin_family = AF_INET;
+	address.sin_addr.s_addr = INADDR_ANY;
+	address.sin_port = htons(PORT);
 
-    // //lipsi summaries
-    // for (int i = 0; i < w; i++)
-    // {
-    //     while (true)
-    //     {
-    //         char *buf = communicator.createBuffer();
-    //         communicator.recv(buf, pid_in_out.items[i].in);
-    //         //fprintf(stderr, "Elava apo to worker %d to minima: '%ld' \n", i, sizeof(buf));
-    //         if (string(buf) == "BYE")
-    //         { //elava to eidiko mhnuma oti that's a nono
-    //             break;
-    //         }
-    //         //and en einai BYE valto mesa
-    //         summ_file << buf << "\n";
-    //         communicator.destroyBuffer(buf);
-    //     }
-    // }
-    // summ_file.close();
-    //std::string com; //command
-    /*while (printf("?") && std::getline(std::cin, com))
+	// attaching socket to the port
+	if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
+	{
+		perror("bind failed");
+		exit(EXIT_FAILURE);
+	}
+	if (listen(server_fd, 3) < 0) //fd, posa connection reqs 8a ginoun mexri na pw oti ok paei terma
+	{
+		perror("listen");
+		exit(EXIT_FAILURE);
+	}
+	if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
+	{
+		perror("accept");
+		exit(EXIT_FAILURE);
+	}
+	
+	while (true)
+	{
+		valread = read(new_socket, buffer, 1024);
+		fprintf(stderr, "SERVER//poso: %d\t ti: %s\n",valread, buffer);
+		if (string(buffer)=="BYE")
+		{
+			break;
+		}
+	}
+
+	char *ack = "Eimai o server kai sou lew, client, oti elava ta mnmt sou!";
+	send(new_socket, ack, strlen(ack), 0);
+	//printf("Hello message sent\n");
+	return 0;
+}
+//summaries
+// ofstream summ_file;
+// std::string onomaarxeiousum = "sum_file.txt";
+// summ_file.open(onomaarxeiousum);
+
+// //lipsi summaries
+// for (int i = 0; i < w; i++)
+// {
+//     while (true)
+//     {
+//         char *buf = communicator.createBuffer();
+//         communicator.recv(buf, pid_in_out.items[i].in);
+//         //fprintf(stderr, "Elava apo to worker %d to minima: '%ld' \n", i, sizeof(buf));
+//         if (string(buf) == "BYE")
+//         { //elava to eidiko mhnuma oti that's a nono
+//             break;
+//         }
+//         //and en einai BYE valto mesa
+//         summ_file << buf << "\n";
+//         communicator.destroyBuffer(buf);
+//     }
+// }
+// summ_file.close();
+//std::string com; //command
+/*while (printf("?") && std::getline(std::cin, com))
     { //to "?" einai prompt gia ton user
 
         if (child_died == true)
@@ -742,4 +756,3 @@ int main(int argc, char const *argv[])
         }
     } //end while(1)
 */
-}
