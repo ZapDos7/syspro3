@@ -8,6 +8,10 @@ Used: C++11 (Developed on Linux Ubuntu 16.04), used git for version control and 
 Contents:
 - this readme
 - previous assignment's files (bb, date, heap, ht, record, tree, date_format, quicksort, Pair, Triplette, PairArray, PidArray, TripleArray, StringArray .cpp & .h files, main_aggregator.cpp, main_worker.cpp/.h)
+- server/ThreadArgs.h is a class containing all the arguements to be passed to threads (so we don't need global variables)
+- server/Queue.h/.cpp: queue class and methods (circular buffer implementation)
+- server/PortCountries.h/.cpp: a class that combines the IP, port number and an array of countries, so the server keeps track of where to send each country-based query
+- server/PCArray.h/.cpp: array of PortCountries items.
 
 Use:
 - While in each project subfolder, run "$make" to create the .o files and the executable
@@ -19,6 +23,9 @@ Use:
 
 Notes:
 - Arbitrary selection of ports for my project are as follows: serverPort = 57642
+- The previously created "Connection" class implements the protocol here as well, expanding the previous version of it so it handles communication between sockets as well as through pipes.
+- When the server receives a message beginning with 'W', it was sent by a worker, and when it begins with 'C', by a client thread.
+
 
 Sources:
 - class' notes
