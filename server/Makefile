@@ -1,6 +1,6 @@
 CC=g++ -std=c++11
-CFLAGS=-c -Wpedantic -Ofast -Wall -ggdb3 -lpthread
-SOURCES=server.cpp ../Communication.cpp
+CFLAGS=-c -pthread -Wpedantic -Ofast -Wall -ggdb3
+SOURCES=server.cpp ../Communication.cpp PortCountries.cpp PCArray.cpp Queue.cpp ../StringArray.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE= whoServer
 ARGS= -q 56321 -s 57642 -w 2 -b 4096
@@ -10,10 +10,10 @@ VAL=valgrind --leak-check=full
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@  -lpthread 
 
 .cpp.o:
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@ 
 
 run:
 	./$(EXECUTABLE) $(FILE) $(ARGS)

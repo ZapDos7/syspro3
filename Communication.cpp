@@ -1,5 +1,9 @@
 #include <cstring>
 #include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/wait.h> /* sockets */
+#include <netdb.h>    /* gethostbyaddr */
 
 #include "Communication.h"
 
@@ -76,6 +80,19 @@ void Communication::send(char *buf, int fd) {
     }
 }
 
+void Communication::send(char buf, int fd) {
+    //int check = write(fd, buf, b);
+    int check = write(fd, &buf, sizeof (buf));
+    if (check == -1) {
+        cerr << "errno is " << errno << " ";
+        perror("communication::send");
+    } else if (check == 0) {
+        cerr << "Didn't write enough bytes\n";
+        cerr << "errno is " << errno << " ";
+        perror("communication::send");
+    }
+}
+
 void Communication::recv(char *buf, int fd) {
     //int check = read(fd, buf, b);
     int check = readall(fd, buf, b);
@@ -96,4 +113,107 @@ void Communication::recv(char *buf, int fd) {
             perror("communication::recv");
         }
     }
+}
+
+void Communication::send(int buf, int fd) {
+    //int check = write(fd, buf, b);
+    int check = write(fd, &buf, sizeof (buf));
+    if (check == -1) {
+        cerr << "errno is " << errno << " ";
+        perror("communication::send");
+    } else if (check == 0) {
+        cerr << "Didn't write enough bytes\n";
+        cerr << "errno is " << errno << " ";
+        perror("communication::send");
+    }
+}
+
+void Communication::recv(int buf, int fd) {
+    //int check = read(fd, buf, b);
+    int check = read(fd, &buf, sizeof (buf));
+    if (check == -1 && errno == EINTR) {
+        return;
+    }
+    if (check == -1) //or if check!=n
+    {
+        cerr << "errno is " << errno << " ";
+        perror("communication::recv");
+    } else if (check == 0) {
+        perror("communication::recv");
+        cerr << "Communication closed by peer \n";
+    }
+}
+
+void Communication::recv(char buf, int fd) {
+    //int check = read(fd, buf, b);
+    int check = read(fd, &buf, sizeof (buf));
+    if (check == -1 && errno == EINTR) {
+        return;
+    }
+    if (check == -1) //or if check!=n
+    {
+        cerr << "errno is " << errno << " ";
+        perror("communication::recv");
+    } else if (check == 0) {
+        perror("communication::recv");
+        cerr << "Communication closed by peer \n";
+    }
+}
+
+int Communication::create_listening_socket(uint16_t & port, int backlog) {
+    struct sockaddr_in address;
+    socklen_t address_l = sizeof (address);
+    int fd;
+
+    // creating socket fd
+    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(port);
+
+    if (bind(fd, (struct sockaddr *) &address, address_l) < 0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    if (listen(fd, backlog) < 0) {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    if (port == 0) {
+        if (getsockname(fd, (struct sockaddr *) &address, &address_l) == -1) {
+            perror("getsockname");
+        } else {
+            port = ntohs(address.sin_port);
+        }
+    }
+
+    return fd;
+}
+
+int Communication::create_connecting_socket(const char * ip, uint16_t & port) {
+    struct sockaddr_in client_addr; //edw 8a m leei o server ti thelei
+    socklen_t client_addr_l = sizeof (client_addr);
+    int fd;
+
+    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("\n Socket creation error1 \n");
+        exit(EXIT_FAILURE);
+    }
+
+    client_addr.sin_family = AF_INET;
+    client_addr.sin_port = htons(port);
+    client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if (connect(fd, (struct sockaddr *) &client_addr, client_addr_l) < 0) {
+        printf("\nConnection Failed \n");
+        exit(EXIT_FAILURE);
+    }
+
+    return fd;
 }

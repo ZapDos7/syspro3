@@ -28,20 +28,20 @@ System Programming Project #2, Spring 2020
 //#include "Summ.h"
 #include "SummArray.h"
 
-bool refresh_scheduled = false;
+// bool refresh_scheduled = false;
 
-void catchinterrupt2(int signo)
-{
-    // refresh stin main gia na exw prosvasi se mi global vars
-    refresh_scheduled = true;
-}
+// void catchinterrupt2(int signo)
+// {
+//     // refresh stin main gia na exw prosvasi se mi global vars
+//     refresh_scheduled = true;
+// }
 
-bool shutdown_scheduled = false;
+// bool shutdown_scheduled = false;
 
-void catchinterrupt3(int signo)
-{
-    shutdown_scheduled = true;
-}
+// void catchinterrupt3(int signo)
+// {
+//     shutdown_scheduled = true;
+// }
 
 int main_worker(char *in_dir, int b, string name_out, string name_in)
 {
@@ -79,39 +79,51 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
     string serverip(bufsip);
     communicator.destroyBuffer(bufsip);
 
+    char *bufpw = communicator.createBuffer();
+    communicator.recv(bufpw, out_fd);
+    int posoi_worker = atoi(bufpw);
+    communicator.destroyBuffer(bufpw);
+
     char *bufsport = communicator.createBuffer();
     communicator.recv(bufsport, out_fd);
-    int serverport = atoi(bufsport);
+    uint16_t serverport = (uint16_t)atoi(bufsport);
     communicator.destroyBuffer(bufsport);
 
-    //fprintf(stderr, "worker %d has received serverIP: %s and serverPort: %d\n", child_pid, serverip.c_str(), serverport);
+    fprintf(stderr, "worker %d has received se6rverIP: %s and serverPort: %d\n", child_pid, serverip.c_str(), serverport);
 
-    int sock = 0, valread;
-    struct sockaddr_in serv_addr;
-    char buffer[1024] = {0};
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    uint16_t client_sin_port = 0;
+
+    int listening_fd = Communication::create_listening_socket(client_sin_port, 200);
+
+    int connecting_fd = Communication::create_connecting_socket(serverip.c_str(), serverport);
+
+    //cout << "client port: " << client_sin_port << endl;
+
+    //eimai worker
+    communicator.send('W', connecting_fd);
+    //buffer size < aggr
+    communicator.send(b, connecting_fd);
+    //posoi eimaste
+    communicator.send(posoi_worker, connecting_fd);
+
+    std::string ip_port = "";
+    ip_port.append(serverip);
+    ip_port.append(":");
+    ip_port.append(to_string(client_sin_port));
+    ip_port.append(".");
+    ip_port.append(countries.items[0]);
+    for (int i = 1; i < countries.size; i++)
     {
-        printf("\n Socket creation error \n");
-        return -1;
+        ip_port.append(",");
+        ip_port.append(countries.items[i]);
     }
+    char *thasteilw = new char[ip_port.length() + 1];
+    strcpy(thasteilw, ip_port.c_str());
+    communicator.send(thasteilw, connecting_fd);
 
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(serverport);
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-    {
-        printf("\nConnection Failed \n");
-        return -1;
-    }
-    //send(sock, "i am WORKER", strlen("i am WORKER"), 0);
-    send(sock, "BYE", strlen("BYE"), 0);
-    valread = read(sock, buffer, 1024);
-    fprintf(stderr, "CLIENT//poso: %d\t ti: %s\n", valread, buffer);
-    return 0;
-
+    //sto connecting_fd stelnw summaries
     std::ifstream dataset; //edw 8a kanw open to dataset
-    //array apo Xwra/DD-MM-YYYY string, ti exw diavasei
+    // //array apo Xwra/DD-MM-YYYY string, ti exw diavasei
     StringArray ta_arxeia_mou(300);
     for (int posa = 0; posa < countries.size; posa++)
     {
@@ -155,7 +167,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
         }
         closedir(dir);
 
-        //fprintf(stderr, "1o closedir apo %d, posa arxeia: %d \n", child_pid, posa_arxeia);
+        //     //fprintf(stderr, "1o closedir apo %d, posa arxeia: %d \n", child_pid, posa_arxeia);
 
         std::string *date_file_names = new string[posa_arxeia];
 
@@ -332,289 +344,36 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
         }
         char *buf = communicator.createBuffer();
         communicator.put(buf, summary);
-        communicator.send(buf, in_fd);
+        communicator.send(buf, connecting_fd);
         communicator.destroyBuffer(buf);
         //closedir(dir);
         //fprintf(stderr, "telos apo %d gia xwra= %s\n", child_pid, countries.items[posa].c_str());
     }
 
+    //esteila kai summaries
     char *bufsum = communicator.createBuffer();
     communicator.put(bufsum, "BYE");
-    communicator.send(bufsum, in_fd);
+    communicator.send(bufsum, connecting_fd);
     communicator.destroyBuffer(bufsum);
+    close(connecting_fd);
+
     fprintf(stderr, "Worker %d ready\n", child_pid);
+    //sto listening_fd dexomai Queries
 
-    long int total = 0;
-    long int success = 0;
-    long int failed = 0;
-
-    //refresh
-    static struct sigaction act;
-    act.sa_handler = catchinterrupt2;
-    sigfillset(&(act.sa_mask));
-    sigaction(SIGUSR1, &act, NULL);
-
-    //log files
-    static struct sigaction act2;
-    act2.sa_handler = catchinterrupt3;
-    sigfillset(&(act2.sa_mask));
-    sigaction(SIGINT, &act2, NULL);
-    sigaction(SIGQUIT, &act2, NULL);
-
+    // long int total = 0;
+    // long int success = 0;
+    // long int failed = 0;
     //sundesi me server
     /*
     while (true)
     {
         char *buf = communicator.createBuffer();
-        communicator.recv(buf, out_fd);
-        if (refresh_scheduled == true) // refresh - oxi resend summ stats
-        {
-            refresh_scheduled = false;
-
-            std::ifstream dataset; //edw 8a kanw open to dataset
-
-            for (int posa = 0; posa < countries.size; posa++)
-            {
-                int posa_arxeia = 0; //posa date arxeia exei mesa to folder gia mia xwra
-                DIR *dir;
-                struct dirent *entry; //xwra
-
-                std::string monopati(in_dir);
-                monopati.append("/");
-                monopati.append(countries.items[posa]);
-
-                //fprintf(stderr, "o worker %d anoigei to %s\n\n", child_pid, monopati.c_str());
-
-                dir = opendir(monopati.c_str());
-                if (dir == NULL)
-                {
-                    std::cerr << "critical error opening input directory\n";
-                    exit(-1);
-                }
-                while ((entry = readdir(dir)) != NULL)
-                {
-                    if (entry->d_type == DT_DIR)
-                    {
-                        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                        {
-                            continue; //skip ., ..
-                        }
-                    }
-                    else //eimai se xwra/date
-                    {
-                        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                        {
-                            continue; //skip ., ..
-                        }
-                        std::string temp(countries.items[posa]);
-                        temp.append("/");
-                        std::string tmp(entry->d_name);
-                        temp.append(tmp);
-                        if (ta_arxeia_mou.has(temp) == true)
-                        {
-                            break;
-                        }
-                        posa_arxeia++;
-                    }
-                }
-                closedir(dir);
-
-                //fprintf(stderr, "1o closedir apo %d, posa arxeia: %d \n", child_pid, posa_arxeia);
-
-                std::string *date_file_names = new string[posa_arxeia];
-
-                //ksananoigw na ta valw sto array
-                int posa_date_arxeia = 0; //posa evala sto array
-                dir = opendir(monopati.c_str());
-                if (dir == NULL)
-                {
-                    std::cerr << "critical error opening input directory\n";
-                    exit(-1);
-                }
-                while ((entry = readdir(dir)) != NULL)
-                {
-                    if (entry->d_type == DT_DIR)
-                    {
-                        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                        {
-                            continue; //skip ., ..
-                        }
-                    }
-                    else //eimai se xwra/date
-                    {
-                        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                        {
-                            continue; //skip ., ..
-                        }
-                        std::string temp(countries.items[posa]);
-                        temp.append("/");
-                        std::string tmp(entry->d_name);
-                        temp.append(tmp);
-                        if (ta_arxeia_mou.has(temp) == true)
-                        {
-                            break;
-                        }
-                        date_file_names[posa_date_arxeia] = entry->d_name;
-                        posa_date_arxeia++;
-                    }
-                }
-                closedir(dir);
-
-                quickSort(date_file_names, 0, posa_date_arxeia - 1);
-
-                for (int akak = 0; akak < posa_date_arxeia; akak++)
-                {
-                    std::string path = monopati;
-                    path.append("/");
-                    path.append(date_file_names[akak]);
-                    //fprintf(stderr, "o %d paei na anoiksei to %s\n", child_pid, path.c_str());
-                    dataset.open(path);
-
-                    if (!dataset.is_open())
-                    {
-                        std::cerr << "critical error - cannot open dataset\n";
-                        exit(-1);
-                    }
-                    else if (dataset.is_open())
-                    {
-                        //fprintf(stderr, "paw ma diavasw getline apo %d\n", child_pid);
-                        std::string line;
-
-                        while (std::getline(dataset, line)) //diavazei olo to this date --> we gotta do it for all files in this folder
-                        {
-                            std::string wannabe = "";
-                            std::string help[6]; //boithitiki domi me ta tokens tou line pou 8a ftiaksw swsta
-                            const char *c_string = line.c_str();
-                            int counter = 0;
-                            char *buffer = strdup(c_string);
-                            char *token = strtok(buffer, " ");
-
-                            while (token)
-                            {
-                                //std::cerr << token << '\t';
-                                help[counter] = token;
-                                token = strtok(NULL, " ");
-                                counter++;
-                            }
-                            wannabe += help[0]; //wannabe="ID"
-                            wannabe += " ";
-                            wannabe += help[2]; //wannabe="ID Fname"
-                            wannabe += " ";
-                            wannabe += help[3]; //wannabe="ID Fname Lname"
-                            wannabe += " ";
-                            wannabe += help[4]; //wannabe="ID Fname Lname Disease"
-                            wannabe += " ";
-                            wannabe += countries.items[posa]; //wannabe="ID Fname Lname Disease Country"
-                            wannabe += " ";
-                            wannabe += help[5]; //wannabe="ID Fname Lname Disease Country Age"
-                            wannabe += " ";
-                            //fprintf(stderr, "o %d elegxei to record %s", child_pid, wannabe.c_str());
-                            if (help[1] == "ENTER") //exoume eisodo
-                            {
-                                wannabe += date_file_names[akak];
-                                //fprintf(stderr, "o %d elegxei to record %s\n", child_pid, wannabe.c_str());
-                                record temp_r(wannabe);                  //temp record gia insert
-                                record *elegxos = my_ht.insert(&temp_r); //edw ginetai kai elegxos gia unique IDs
-                                if (elegxos == NULL)
-                                {
-                                    std::cerr << "den evala to " << elegxos->get_id() << "\n";
-                                    continue;
-                                    //break; //sto piazza eipw8ike oti an brethei kapoio ID duplicate, na proxwrame stis entoles & na mhn sunexizoun ta insertions.
-                                }
-                                else
-                                {
-                                    //fprintf(stderr, "o %d evale to %s\n", child_pid, elegxos->get_id().c_str());
-                                    diseaseHT.ainsert(elegxos, false);
-                                    countryHT.ainsert(elegxos, true);
-                                }
-                            }
-                            else if (help[1] == "EXIT")
-                            {
-                                //fprintf(stderr, "o %d elegxei to record %s gia exit\n", child_pid, wannabe.c_str());
-                                ht_item *h = my_ht.search(help[0]); //bres an uparxei to record me auto to ID
-                                if (h == NULL)
-                                {
-                                    //fprintf(stderr, "o %d den brike ton %s\n", child_pid, help[0].c_str());
-                                    continue; //oops this record doesn't exist, akuro, bye
-                                }
-                                else
-                                //if (h!=NULL)
-                                {
-                                    date d2(date_file_names[akak]);         //d2 = ti paw na valw
-                                    date *d1 = h->rec->get_exitDatePtr();   //to uparxon exit date
-                                    bool magkas = d1->set;                  //ama eixa prin set=true ara eixa idi exit date, true, else false
-                                    date *din = h->rec->get_entryDatePtr(); //to entry date
-                                    if (isLater(d2, *din) == 1)             //pas na mou baleis kati pou den einai later tou entry date m
-                                    {
-                                        std::cerr << "error\n";
-                                    }
-                                    else //valid basei entry date
-                                    {
-                                        h->rec->set_exitD(d2.get_date_as_string()); //twra exei exit date
-                                        if (magkas == false)                        //prin den imoun set ara update counters:
-                                        {
-                                            block *blokaki1 = diseaseHT.search(help[4]);
-                                            if (blokaki1 != NULL)
-                                            {
-                                                blokaki1->update_c_in(false);
-                                            }
-
-                                            block *blokaki2 = countryHT.search(countries.items[posa]);
-                                            if (blokaki2 != NULL)
-                                            {
-                                                blokaki2->update_c_in(false);
-                                            }
-                                        }
-                                        //eidallws oi metrites den allazoun!
-                                    }
-                                }
-                            }
-                            //continue;
-                        }
-                    }
-                    dataset.close();
-                }
-            }
-
-            continue;
-        }
-
-        if (shutdown_scheduled == true)
-        {
-            shutdown_scheduled = false;
-            ofstream logfile;
-            std::string onomaarxeiou = "log_file.";
-            onomaarxeiou += to_string(child_pid);
-            logfile.open(onomaarxeiou);
-            for (int i = 0; i < countries.size; i++) //grafw poies einai oi xwres m
-            {
-                logfile << countries.items[i] << "\n";
-            }
-            logfile << "TOTAL: " << total << "\n";     //posa erwthmata mou irthan
-            logfile << "SUCCESS: " << success << "\n"; //posa success
-            logfile << "FAIL: " << failed << "\n";     //posa fail
-            logfile.close();
-
-            std::string results = "";
-            results.append(to_string(total));
-            results.append(",");
-            results.append(to_string(success));
-            results.append(",");
-            results.append(to_string(failed));
-            char *buf = communicator.createBuffer();
-            communicator.put(buf, results);
-            communicator.send(buf, in_fd);
-            
-            return 0;
-        }
-
+        communicator.recv(buf, listening_fd);
         std::string com(buf); //com is the command as std::string
-
         communicator.destroyBuffer(buf);
 
         char *cstr = new char[com.length() + 1]; //auto 8a kanw tokenize
         strcpy(cstr, com.c_str());               //copy as string to line sto cstr
-        //o AGGR elegxei an tha exei dwsei "\n" o user, o worker 8a parei legit entoli
         char *pch;
         const char delim[2] = " "; // \0
         pch = strtok(cstr, delim);
@@ -1098,30 +857,30 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
             failed++;
         }
     } //end while(1)
-*/
+     */
     //shutdown
-    ofstream logfile;
-    std::string onomaarxeiou = "log_file.";
-    onomaarxeiou += to_string(child_pid);
-    logfile.open(onomaarxeiou);
-    for (int i = 0; i < countries.size; i++) //grafw poies einai oi xwres m
-    {
-        logfile << countries.items[i] << "\n";
-    }
-    logfile << "TOTAL: " << total << "\n";     //posa erwthmata mou irthan
-    logfile << "SUCCESS: " << success << "\n"; //posa success
-    logfile << "FAIL: " << failed << "\n";     //posa fail
-    logfile.close();
+    // ofstream logfile;
+    // std::string onomaarxeiou = "log_file.";
+    // onomaarxeiou += to_string(child_pid);
+    // logfile.open(onomaarxeiou);
+    // for (int i = 0; i < countries.size; i++) //grafw poies einai oi xwres m
+    // {
+    //     logfile << countries.items[i] << "\n";
+    // }
+    // logfile << "TOTAL: " << total << "\n";     //posa erwthmata mou irthan
+    // logfile << "SUCCESS: " << success << "\n"; //posa success
+    // logfile << "FAIL: " << failed << "\n";     //posa fail
+    // logfile.close();
 
-    std::string results = "";
-    results.append(to_string(total));
-    results.append(",");
-    results.append(to_string(success));
-    results.append(",");
-    results.append(to_string(failed));
-    char *buf = communicator.createBuffer();
-    communicator.put(buf, results);
-    communicator.send(buf, in_fd);
+    // std::string results = "";
+    // results.append(to_string(total));
+    // results.append(",");
+    // results.append(to_string(success));
+    // results.append(",");
+    // results.append(to_string(failed));
+    // char *buf = communicator.createBuffer();
+    // communicator.put(buf, results);
+    // communicator.send(buf, in_fd);
 
     return 0;
 }
