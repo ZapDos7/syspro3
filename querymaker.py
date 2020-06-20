@@ -42,9 +42,9 @@ for x in range(posa):
             date2 = start_date + datetime.timedelta(days=random_number_of_days)
         line = line + date2.strftime("%d-%m-%Y")
         line = line + " "
-        me_xwra = random.randint(1,2)
+        me_xwra = random.randint(1, 2)
         if me_xwra == 1:
-            #valta sto file
+            # valta sto file
             line = line + "\n"
             f.write(line)
         else:
@@ -53,7 +53,7 @@ for x in range(posa):
             f.write(line)
     elif entoli == "/topk-AgeRanges":
         line = line + " "
-        line = line + str(random.randint(1,4))
+        line = line + str(random.randint(1, 4))
         line = line + " "
         line = line + random.choice(xwres)
         line = line + " "
@@ -73,7 +73,7 @@ for x in range(posa):
         f.write(line)
     elif entoli == "/searchPatientRecord":
         line = line + " "
-        line = line + str(random.randint(100,9999))
+        line = line + str(random.randint(100, 9999))
         line = line + "\n"
         f.write(line)
     elif entoli == "/numPatientAdmissions":
@@ -91,7 +91,7 @@ for x in range(posa):
             date2 = start_date + datetime.timedelta(days=random_number_of_days)
         line = line + date2.strftime("%d-%m-%Y")
         line = line + " "
-        me_xwra = random.randint(1,2)
+        me_xwra = random.randint(1, 2)
         if me_xwra == 1:
             line = line + "\n"
             f.write(line)
@@ -114,7 +114,7 @@ for x in range(posa):
             date2 = start_date + datetime.timedelta(days=random_number_of_days)
         line = line + date2.strftime("%d-%m-%Y")
         line = line + " "
-        me_xwra = random.randint(1,2)
+        me_xwra = random.randint(1, 2)
         if me_xwra == 1:
             line = line + "\n"
             f.write(line)

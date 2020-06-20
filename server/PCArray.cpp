@@ -43,7 +43,7 @@ int PCArray::has_country(std::string countryName)
     {
         for (int j = 0; j < this->items[i].my_countries.size; j++)
         {
-            if (this->items[i].my_countries.items[j]==countryName)
+            if (this->items[i].my_countries.items[j] == countryName)
             {
                 return i;
             }

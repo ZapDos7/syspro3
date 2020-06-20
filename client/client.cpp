@@ -60,21 +60,24 @@ int main(int argc, char const *argv[])
 	std::ifstream dataset(query_file);
 	std::string line;
 	int posa_commands = 0;
-	StringArray entoles;
+	StringArray entoles; // "cached" file
+	//arxika aplws stelnw 1-1 ston server
 	while (std::getline(dataset, line))
 	{
 		//fprintf(stderr, "entoli %d: '%s'\n", posa_commands, line.c_str());
 		entoles.insert(line);
 		posa_commands++;
 		std::string tempLine = "C"; // - auto upodilwnei oti eimai Client
-		tempLine.append(line); //C/entoli i Centoli both work?
-		char * lineCstr = new char[tempLine.length() + 1];
-		strcpy (lineCstr, tempLine.c_str());
+		tempLine.append(line);		//C/entoli i Centoli both work?
+		char *lineCstr = new char[tempLine.length() + 1];
+		strcpy(lineCstr, tempLine.c_str());
 		communicator.send(lineCstr, accept_server_fd);
 	}
 	close(accept_server_fd);
-	//arxika aplws stelnw 1-1 ston server
+	
 	//epeita numThreads
+
+	//read replies
 
 	return 0;
 }

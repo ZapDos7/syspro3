@@ -374,6 +374,7 @@ void *service(void *args)
                         }
                         //uparxei genika auti i xwra?
                         bool uparxei = false;
+                        fprintf(stderr, "elegxw xwra: %s\n", comms[2].c_str());
                         for (int i = 0; i < skonaki.size; i++)
                         {
                             for (int j = 0; j < skonaki.items[i].my_countries.size; i++)

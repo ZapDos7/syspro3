@@ -13,9 +13,8 @@ public:
     ~PCArray();
     virtual void print();
 
-    int has_pair(std::string ip, int port); //-1 an den uparxei, else to i tis thesis opou uparxei
+    int has_pair(std::string ip, int port);   //-1 an den uparxei, else to i tis thesis opou uparxei
     int has_country(std::string countryName); //-1 an den tin exei, else to index tis thesis opou uparxei
 };
-
 
 #endif
