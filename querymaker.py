@@ -124,6 +124,9 @@ for x in range(posa):
             f.write(line)
     else:
         pass
+
+# teleiwnei me /exit
+f.write("/exit")
 #date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
 #print("date and time:",date_time)
 f.close()

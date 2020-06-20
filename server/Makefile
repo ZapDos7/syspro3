@@ -20,6 +20,7 @@ run:
 
 clean:
 	rm -f $(OBJECTS) $(EXECUTABLE)
+	rm sum_file.txt
 
 val:
 	$(VAL) ./$(EXECUTABLE) $(FILE) $(ARGS)

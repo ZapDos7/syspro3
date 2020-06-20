@@ -7,43 +7,51 @@
 
 #include "Queue.h"
 
-
-class ThreadArgs {
+class ThreadArgs
+{
 private:
-    int socket_b;
+    int socket_b; //super safely stored timi gia to socket buffer size
 public:
     int q, s, w, b, accept_client_fd, accept_worker_fd;
-    Queue * queue;
-    
-    
+    Queue *queue;
+    //q query port num - C
+    //s statistics port num - W
+    //w NUM THREADS
+    //b buffer size
+    //fd gia C
+    //fd gia W
+    //Queue kuklikos buffer
+
     pthread_mutex_t socket_b_lock;
-    pthread_mutex_t cout_lock;
-    
-    ThreadArgs(int q, int s, int w, int b, int accept_client_fd, int accept_worker_fd, Queue* queue) : q(q), s(s), w(w), b(b), accept_client_fd(accept_client_fd), accept_worker_fd(accept_worker_fd), queue(queue) {
+    pthread_mutex_t cout_lock; //used gia cout an den kanw dld fprintf
+
+    ThreadArgs(int q, int s, int w, int b, int accept_client_fd, int accept_worker_fd, Queue *queue) : q(q), s(s), w(w), b(b), accept_client_fd(accept_client_fd), accept_worker_fd(accept_worker_fd), queue(queue)
+    {
         socket_b = -1;
-        
         pthread_mutex_init(&socket_b_lock, NULL);
         pthread_mutex_init(&cout_lock, NULL);
     }
-    
-    ~ThreadArgs() {
+
+    ~ThreadArgs()
+    {
         pthread_mutex_destroy(&socket_b_lock);
         pthread_mutex_destroy(&cout_lock);
     }
 
-    void setSocketBufferSize(int newvalue) {
+    void setSocketBufferSize(int newvalue)
+    {
         pthread_mutex_lock(&socket_b_lock);
         socket_b = newvalue;
         pthread_mutex_unlock(&socket_b_lock);
     }
-    
-    int getSocketBufferSize() {
+
+    int getSocketBufferSize()
+    {
         pthread_mutex_lock(&socket_b_lock);
         int temp = socket_b;
         pthread_mutex_unlock(&socket_b_lock);
         return temp;
     }
-
 };
 
 #endif
