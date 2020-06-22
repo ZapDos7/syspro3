@@ -35,6 +35,7 @@ public:
     void recv(int buf, int fd);
 
     static int create_listening_socket(uint16_t &port, int backlog);
+    static int create_listening_socket(uint16_t &port);
     static int create_connecting_socket(const char *ip, uint16_t &port);
 };
 

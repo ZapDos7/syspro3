@@ -2,13 +2,9 @@
 
 PCArray::PCArray()
 {
-    this->capacity = 3;
+    this->capacity = 5;
     this->size = 0;
-    for (int i = 0; i < this->size; i++)
-    {
-        this->items[i].my_port = 0;
-        this->items[i].my_countries.capacity = 10;
-    }
+    this->items = new PortCountries[capacity];
 }
 
 PCArray::PCArray(int capacity) : Array(capacity)

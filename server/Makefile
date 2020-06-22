@@ -5,7 +5,7 @@ OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE= whoServer
 ARGS= -q 56321 -s 57642 -w 2 -b 4096
 #-q queryportNumber -s statiscticsportnumber -w numthreads -b buffersize
-VAL=valgrind --leak-check=full
+VAL=valgrind --leak-check=full --tool=drd 
 
 all: $(SOURCES) $(EXECUTABLE)
 

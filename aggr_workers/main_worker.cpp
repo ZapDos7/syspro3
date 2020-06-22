@@ -89,11 +89,11 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
     uint16_t serverport = (uint16_t)atoi(bufsport);
     communicator.destroyBuffer(bufsport);
 
-    fprintf(stderr, "worker %d has received se6rverIP: %s and serverPort: %d\n", child_pid, serverip.c_str(), serverport);
+    fprintf(stderr, "worker %d has received serverIP: %s and serverPort: %d\n", child_pid, serverip.c_str(), serverport);
 
     uint16_t client_sin_port = 0;
 
-    int listening_fd = Communication::create_listening_socket(client_sin_port, 200);
+    int listening_fd = Communication::create_listening_socket(client_sin_port);
 
     int connecting_fd = Communication::create_connecting_socket(serverip.c_str(), serverport);
 
@@ -356,6 +356,11 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
     communicator.send(bufsum, connecting_fd);
     communicator.destroyBuffer(bufsum);
 
+    char * ok = communicator.createBuffer();
+    communicator.put(ok, "OK");
+    communicator.send(ok, in_fd);
+    communicator.destroyBuffer(ok);
+
     fprintf(stderr, "Worker %d ready\n", child_pid);
 
     //sto listening_fd dexomai Queries
@@ -382,7 +387,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
         communicator.recv(buf, listening_fd);
         std::string com(buf); //com is the command as std::string
         communicator.destroyBuffer(buf);
-
+        fprintf(stderr, "command: %s\n", com.c_str());
         char *cstr = new char[com.length() + 1]; //auto 8a kanw tokenize
         strcpy(cstr, com.c_str());               //copy as string to line sto cstr
         char *pch;

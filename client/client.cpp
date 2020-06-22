@@ -12,10 +12,13 @@ System Programming Project #3, Spring 2020
 #include <fstream>
 #include "../Communication.h"
 #include "../StringArray.h"
+#include "ThreadArgsC.h"
 
 void *ask(void *args)
 {
+	fprintf(stderr, "I am thread %ld and will ask a question now...\n", pthread_self());
 	//thread asks query to server & then receives answer by a worker
+	pthread_exit(NULL);
 }
 
 int main(int argc, char const *argv[])
@@ -50,11 +53,29 @@ int main(int argc, char const *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	if (numThreads > 50)
+	{
+		fprintf(stderr, "Number of threads should be no more than 50\n");
+		exit(0);
+	}
+
+	ThreadArgsC threadargs(query_file, numThreads, sp, sip);
+	pthread_t asking[numThreads];
+	for (int i = 0; i < numThreads; i++)
+	{
+		pthread_create(&asking[i], NULL, ask, (void *)&threadargs);
+	}
+	fprintf(stderr, "Main client thread waiting for children client slaves to exit ... \n");
+	for (int i = 0; i < numThreads; i++)
+	{
+		pthread_join(asking[i], NULL);
+	}
+
 	//edw akouw ton server
 	int accept_server_fd = Communication::create_connecting_socket(sip, sp);
 	cout << "Accept server at port " << sp << " via FD: " << accept_server_fd << endl;
 
-	Communication communicator(4096);
+	Communication communicator(4096); //clients do as they please for communication
 
 	//diavasma query file
 	std::ifstream dataset(query_file);
@@ -74,9 +95,9 @@ int main(int argc, char const *argv[])
 		communicator.send(lineCstr, accept_server_fd);
 	}
 	close(accept_server_fd);
-	
-	//epeita numThreads
 
+	//epeita numThreads
+	//ara thelw kai accept gt 8a lamvanw answer apo worker
 	//read replies
 
 	return 0;

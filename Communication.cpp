@@ -247,6 +247,50 @@ int Communication::create_listening_socket(uint16_t &port, int backlog)
     return fd;
 }
 
+int Communication::create_listening_socket(uint16_t &port)
+{
+    struct sockaddr_in address;
+    socklen_t address_l = sizeof(address);
+    int fd;
+
+    // creating socket fd
+    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(port);
+
+    if (bind(fd, (struct sockaddr *)&address, address_l) < 0)
+    {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    if (listen(fd, 100) < 0)
+    {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    if (port == 0)
+    {
+        if (getsockname(fd, (struct sockaddr *)&address, &address_l) == -1)
+        {
+            perror("getsockname");
+        }
+        else
+        {
+            port = ntohs(address.sin_port);
+        }
+    }
+
+    return fd;
+}
+
 int Communication::create_connecting_socket(const char *ip, uint16_t &port)
 {
     struct sockaddr_in client_addr; //edw 8a m leei o server ti thelei

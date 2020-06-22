@@ -287,7 +287,23 @@ int main(int argc, char const *argv[])
         }
     }
 
-    //stelnw sigkill sta paidia
+    // lambanw w * OK --> we done 'ere
+    int okay_counter = w;
+    for (int j = 0; j < w ; j++)
+    {
+        char * ok = communicator.createBuffer();
+        communicator.recv(ok, pid_in_out.items[j].in);
+        if (string(ok)=="OK")
+        {
+            okay_counter--;
+        }
+        communicator.destroyBuffer(ok);
+    }
+    if (okay_counter!=0)
+    {
+        fprintf(stderr, "Something is wrong with my kids...\n");
+        exit(EXIT_FAILURE);
+    }
 
     //kleinw pipes workers' ws AGGR
     for (int j = 0; j < countries.size; j++)

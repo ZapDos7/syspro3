@@ -28,11 +28,21 @@ pthread_mutex_t skonaki_lock; //mutex gia elegxo poios grafei sto skonaki
 ofstream summ_file;             //arxeio opou o server grafei ta summaries
 pthread_mutex_t summ_file_lock; //o mutex tou summaries file
 
-std::ifstream queries;
-pthread_mutex_t query_file_lock;
+std::ifstream queries;           //query file - 8a fugei otan o client dinei tis entoles
+pthread_mutex_t query_file_lock; //query file mutex
 
-int posoi = 0;
-pthread_mutex_t posoi_worker_lock;
+int posoi = 0;                     //plithos workers pou xeirizetai o server & kathe tou thread - mas to lene oi workers tin 1i fora
+pthread_mutex_t posoi_worker_lock; //plithos workers mutex
+
+//kleisimo
+void shutdown(int signo)
+{
+    //clean up, shut down
+    pthread_mutex_destroy(&skonaki_lock);
+    pthread_mutex_destroy(&summ_file_lock);
+    pthread_mutex_destroy(&query_file_lock);
+    pthread_mutex_destroy(&posoi_worker_lock);
+}
 
 void *accept_client(void *args)
 {
@@ -90,9 +100,9 @@ void *service(void *args)
     while (true)
     {
         cout << "Waiting to service a node ... " << endl;
-        int fd = pthreadargs->queue->obtain();
+        int fd = pthreadargs->queue->obtain(); //pairnw aitima pou elava apo tin queue m
 
-        if (fd <= 0)
+        if (fd <= 0) //ekmek
         {
             break;
         }
@@ -100,7 +110,7 @@ void *service(void *args)
         {
             int n = read(fd, &token, sizeof(token));
 
-            if (n <= 0)
+            if (n <= 0) //ekmek
             {
                 perror("token read failed");
                 break;
@@ -108,6 +118,7 @@ void *service(void *args)
 
             if (token == 'C') // client
             {
+                //Κάθε thread θα παίρνει ένα socket ενός client και θα διαβάζει το query. Μετά θα φτιάχνει ένα καινούριο socket τοπικά μέσω του οποίου θα μιλήσει με τον worker για να στείλει το query και να λάβει την απάντηση. Τέλος θα κλείνει το socket. Εγώ έτσι το σκέφτομαι.
                 //tha exei idi timi epeidi prwta m lene oi Worker o,ti theloun k meta egw apantaw
                 Communication communicator(pthreadargs->b);
                 // read command from client
@@ -118,7 +129,8 @@ void *service(void *args)
 
                 //temporary solution - prin ftiaksoume ton client exoume moufa client == file
                 pthread_mutex_lock(&query_file_lock);
-                queries.open("../client.txt");
+                queries.open("../clientTiny.txt"); //test with dataset made by me in #2
+                //queries.open("../client.txt"); // test with big dataset
                 long int total = 0;
                 long int success = 0;
                 long int failed = 0;
@@ -149,18 +161,20 @@ void *service(void *args)
                         {
                             char *buf = communicator.createBuffer();
                             communicator.put(buf, comms[0]);
+                            pthread_mutex_lock(&skonaki_lock);
                             uint16_t portaki = skonaki.items[i].my_port;
                             int connecting_fd = Communication::create_connecting_socket(skonaki.items[i].my_ip.c_str(), portaki);
                             communicator.send(buf, connecting_fd);
+                            pthread_mutex_unlock(&skonaki_lock);
                             communicator.destroyBuffer(buf);
                         }
                         std::string *results = new std::string[posoi];
                         for (int i = 0; i < posoi; i++)
                         {
                             char *buf = communicator.createBuffer();
-                            uint16_t portaki = skonaki.items[i].my_port;
-                            int listening_fd = Communication::create_listening_socket(portaki, 100);
-                            communicator.recv(buf, listening_fd);
+                            //uint16_t portaki = skonaki.items[i].my_port;
+                            //int listening_fd = Communication::create_listening_socket(portaki, 100);
+                            communicator.recv(buf, pthreadargs->s);
                             std::string tmp(buf);
                             results[i] = tmp;
                             communicator.destroyBuffer(buf);
@@ -187,24 +201,24 @@ void *service(void *args)
 
                         //free memory again as needed
                         delete[] cstr;
-                        ofstream logfile;
-                        std::string onomaarxeiou = "log_file.";
-                        onomaarxeiou += to_string(getpid());
-                        logfile.open(onomaarxeiou);
-                        for (int i = 0; i < skonaki.size; i++) //grafw poies einai oi xwres m
-                        {
-                            for (int j = 0; j < skonaki.items[i].my_countries.size; j++)
-                            {
-                                logfile << skonaki.items[i].my_countries.items[j] << "\n";
-                            }
-                        }
-                        logfile << "TOTAL: " << total << "\n";     //posa erwthmata mou irthan
-                        logfile << "SUCCESS: " << success << "\n"; //posa success
-                        logfile << "FAIL: " << failed << "\n";     //posa fail
-                        logfile.close();
+                        // ofstream logfile;
+                        // std::string onomaarxeiou = "log_file.";
+                        // onomaarxeiou += to_string(getpid());
+                        // logfile.open(onomaarxeiou);
+                        // for (int i = 0; i < skonaki.size; i++) //grafw poies einai oi xwres m
+                        // {
+                        //     for (int j = 0; j < skonaki.items[i].my_countries.size; j++)
+                        //     {
+                        //         logfile << skonaki.items[i].my_countries.items[j] << "\n";
+                        //     }
+                        // }
+                        // logfile << "TOTAL: " << total << "\n";     //posa erwthmata mou irthan
+                        // logfile << "SUCCESS: " << success << "\n"; //posa success
+                        // logfile << "FAIL: " << failed << "\n";     //posa fail
+                        // logfile.close();
                         std::cout << "C exiting\n";
                         break;
-                    }                                         //exit
+                    }
                     else if (comms[0] == "/diseaseFrequency") //8. /diseaseFrequency virusName date1 date2 [country]
                     {
                         while (pch != NULL) //kovw tin entoli sta parts tis
@@ -223,50 +237,31 @@ void *service(void *args)
                             //find se poio worker einai auti i xwra
                             //uparxei genika auti i xwra?
                             bool uparxei = false;
-                            for (int i = 0; i < skonaki.size; i++)
+                            pthread_mutex_lock(&skonaki_lock);
+                            int poios = skonaki.has_country(comms[4]);
+                            pthread_mutex_unlock(&skonaki_lock);
+                            if (poios != -1)
                             {
-                                for (int j = 0; j < skonaki.items[i].my_countries.size; j++)
-                                {
-                                    if (skonaki.items[i].my_countries.items[j] == comms[4])
-                                    {
-                                        uparxei = true;
-                                    }
-                                }
+                                uparxei = true;
                             }
                             if (uparxei == false)
                             {
                                 failed++;
                                 fprintf(stderr, "Country %s not in database.\n", comms[4].c_str());
                             }
-                            int poios = 0;
-                            for (int i = 0; i < skonaki.size; i++) //gia kathe xwra
-                            {
-                                for (int j = 0; j < skonaki.items[i].my_countries.size; j++)
-                                {
-                                    if (skonaki.items[i].my_countries.items[j] == comms[4]) //an eisai auti pou psaxnw
-                                    {
-                                        //send to worker
-                                        //std::cerr << comms[4] << "\n";
-                                        char *minima = new char[command.length() + 1];
-                                        strcpy(minima, command.c_str());         //eidallws nmzei oti to com.c_str() einai const char *
-                                        char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
-                                        communicator.put(buf, minima);           //vazw to minima sto buf
-                                        uint16_t portaki = skonaki.items[i].my_port;
-                                        int connecting_fd = Communication::create_connecting_socket(skonaki.items[i].my_ip.c_str(), portaki);
-                                        communicator.send(buf, connecting_fd);
-                                        communicator.destroyBuffer(buf); //yeet
-                                        //o,ti lavw to tupwnw
-                                        poios = i;
-                                        break;
-                                    }
-                                }
-                            }
-                            bool found = false;
-                            char *buf = communicator.createBuffer();
-
+                            char *minima = new char[command.length() + 1];
+                            strcpy(minima, command.c_str());         //eidallws nmzei oti to com.c_str() einai const char *
+                            char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
+                            communicator.put(buf, minima);           //vazw to minima sto buf
+                            pthread_mutex_lock(&skonaki_lock);
                             uint16_t portaki = skonaki.items[poios].my_port;
-                            int listening_fd = Communication::create_listening_socket(portaki, 100);
-                            communicator.recv(buf, listening_fd);
+                            int connecting_fd = Communication::create_connecting_socket(skonaki.items[poios].my_ip.c_str(), portaki);
+                            communicator.send(buf, connecting_fd);
+                            pthread_mutex_unlock(&skonaki_lock);
+                            //communicator.destroyBuffer(buf); //yeet
+                            bool found = false;
+                            //char *buf = communicator.createBuffer();
+                            communicator.recv(buf, pthreadargs->s);
                             if (string(buf) == "ERR") //an lathos command, fail++;
                             {
                                 failed++;
@@ -301,9 +296,11 @@ void *service(void *args)
                                 strcpy(minima, command.c_str());         //eidallws nmzei oti to com.c_str() einai const char *
                                 char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
                                 communicator.put(buf, minima);           //vazw to minima sto buf
+                                pthread_mutex_lock(&skonaki_lock);
                                 uint16_t portaki = skonaki.items[i].my_port;
                                 int connecting_fd = Communication::create_connecting_socket(skonaki.items[i].my_ip.c_str(), portaki);
                                 communicator.send(buf, connecting_fd);
+                                pthread_mutex_unlock(&skonaki_lock);
                                 communicator.destroyBuffer(buf); //yeet
                             }
 
@@ -313,10 +310,10 @@ void *service(void *args)
                             for (int i = 0; i < skonaki.size; i++) //send se olous
                             {
                                 char *buf = communicator.createBuffer();
-
-                                uint16_t portaki = skonaki.items[i].my_port;
-                                int listening_fd = Communication::create_listening_socket(portaki, 100);
-                                communicator.recv(buf, listening_fd);
+                                //uint16_t portaki = skonaki.items[i].my_port;
+                                //int listening_fd = Communication::create_listening_socket(portaki, 100);
+                                //communicator.recv(buf, listening_fd);
+                                communicator.recv(buf, pthreadargs->s);
                                 if (string(buf) == "ERR") //an lathos command, fail++;
                                 {
                                     failed++;
@@ -374,52 +371,36 @@ void *service(void *args)
                         }
                         //uparxei genika auti i xwra?
                         bool uparxei = false;
-                        fprintf(stderr, "elegxw xwra: %s\n", comms[2].c_str());
-                        for (int i = 0; i < skonaki.size; i++)
+                        pthread_mutex_lock(&skonaki_lock);
+                        int poios = skonaki.has_country(comms[2]);
+                        pthread_mutex_unlock(&skonaki_lock);
+                        if (poios != -1)
                         {
-                            for (int j = 0; j < skonaki.items[i].my_countries.size; i++)
-                            {
-                                if (skonaki.items[i].my_countries.items[j] == comms[2])
-                                {
-                                    uparxei = true;
-                                }
-                            }
+                            uparxei = true;
                         }
                         if (uparxei == false)
                         {
                             failed++;
-                            fprintf(stderr, "Country %s not in database.\n", comms[4].c_str());
+                            fprintf(stderr, "Country %s not in database.\n", comms[2].c_str());
                             break;
                         }
-                        //find se poio worker einai auti i xwra
-                        int poios = -1;
-                        for (int i = 0; i < skonaki.size; i++) //gia kathe xwra
-                        {
-                            for (int j = 0; j < skonaki.items[i].my_countries.size; i++)
-                            {
-                                if (skonaki.items[i].my_countries.items[j] == comms[2]) //an eisai auti pou psaxnw
-                                {
-                                    //send to worker
-                                    //std::cerr << comms[4] << "\n";
-                                    char *minima = new char[command.length() + 1];
-                                    strcpy(minima, command.c_str());         //eidallws nmzei oti to com.c_str() einai const char *
-                                    char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
-                                    communicator.put(buf, minima);           //vazw to minima sto buf
-                                    uint16_t portaki = skonaki.items[i].my_port;
-                                    int connecting_fd = Communication::create_connecting_socket(skonaki.items[i].my_ip.c_str(), portaki);
-                                    communicator.send(buf, connecting_fd);
-                                    communicator.destroyBuffer(buf); //yeet
-                                    poios = i;
-                                    break;
-                                }
-                            }
-                        }
+                        char *minima = new char[command.length() + 1];
+                        strcpy(minima, command.c_str());         //eidallws nmzei oti to com.c_str() einai const char *
+                        char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
+                        communicator.put(buf, minima);           //vazw to minima sto buf
+                        pthread_mutex_lock(&skonaki_lock);
+                        uint16_t portaki = skonaki.items[poios].my_port;
+                        int connecting_fd = Communication::create_connecting_socket(skonaki.items[poios].my_ip.c_str(), portaki);
+                        communicator.send(buf, connecting_fd);
+                        pthread_mutex_unlock(&skonaki_lock);
+                        //communicator.destroyBuffer(buf); //yeet
 
                         //paw na dw tin apantisi
-                        char *buf = communicator.createBuffer();
-                        uint16_t portaki = skonaki.items[poios].my_port;
-                        int listening_fd = Communication::create_listening_socket(portaki, 100);
-                        communicator.recv(buf, listening_fd);
+                        //char *buf = communicator.createBuffer();
+                        //uint16_t portaki = skonaki.items[poios].my_port;
+                        //int listening_fd = Communication::create_listening_socket(portaki, 100);
+                        //communicator.recv(buf, listening_fd);
+                        communicator.recv(buf, pthreadargs->s);
                         if (string(buf) == "ERR") //an lathos command, fail++;
                         {
                             fprintf(stderr, "Lathos command wre \n");
@@ -440,18 +421,25 @@ void *service(void *args)
                         {
                             char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
                             communicator.put(buf, command.c_str());  //vazw oli tin entoli sto buf
+                            pthread_mutex_lock(&skonaki_lock);
                             uint16_t portaki = skonaki.items[i].my_port;
                             int connecting_fd = Communication::create_connecting_socket(skonaki.items[i].my_ip.c_str(), portaki);
+                            //fprintf(stderr, "connecting fd == pou lew tin command se worker: %d\n", connecting_fd);
                             communicator.send(buf, connecting_fd);
+                            pthread_mutex_unlock(&skonaki_lock);
                             communicator.destroyBuffer(buf); //yeet
+                            //fprintf(stderr, "esteila to command se kathe worker!\n");
                         }
                         bool found = false;
                         for (int i = 0; i < posoi; i++) //send se olous
                         {
                             char *buf = communicator.createBuffer();
-                            uint16_t portaki = skonaki.items[i].my_port;
-                            int listening_fd = Communication::create_listening_socket(portaki, 100);
-                            communicator.recv(buf, listening_fd);
+                            //uint16_t portaki = skonaki.items[i].my_port;
+                            //fprintf(stderr, "paw na kanw listening socket\n");
+                            //int listening_fd = Communication::create_listening_socket(portaki, 100);
+                            //fprintf(stderr, "listening fd == pou lew tin command se worker: %d\n", listening_fd);
+                            communicator.recv(buf, pthreadargs->s);
+                            //communicator.recv(buf, listening_fd);
                             if (string(buf) == "ERR") //an lathos command, fail++;
                             {
                                 failed++;
@@ -497,15 +485,12 @@ void *service(void *args)
                         {
                             //uparxei?
                             bool uparxei = false;
-                            for (int i = 0; i < skonaki.size; i++)
+                            pthread_mutex_lock(&skonaki_lock);
+                            int poios = skonaki.has_country(comms[4]);
+                            pthread_mutex_unlock(&skonaki_lock);
+                            if (poios != -1)
                             {
-                                for (int j = 0; j < skonaki.items[i].my_countries.size; j++)
-                                {
-                                    if (skonaki.items[i].my_countries.items[j] == comms[4])
-                                    {
-                                        uparxei = true;
-                                    }
-                                }
+                                uparxei = true;
                             }
                             if (uparxei == false)
                             {
@@ -514,32 +499,25 @@ void *service(void *args)
                                 break;
                             }
                             //find se poio worker einai auti i xwra
-                            int poios = -1;
-                            for (int i = 0; i < skonaki.size; i++) //gia kathe xwra
-                            {
-                                for (int j = 0; j < skonaki.items[i].my_countries.size; j++)
-                                {
-                                    if (skonaki.items[i].my_countries.items[j] == comms[4]) //an eisai auti pou psaxnw
-                                    {
-                                        //send to worker
-                                        std::cerr << comms[4] << "\n";
-                                        char *minima = new char[command.size() + 1];
-                                        strcpy(minima, command.c_str());         //eidallws nmzei oti to com.c_str() einai const char *
-                                        char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
-                                        communicator.put(buf, minima);           //vazw to minima sto buf
-                                        uint16_t portaki = skonaki.items[i].my_port;
-                                        int connecting_fd = Communication::create_connecting_socket(skonaki.items[i].my_ip.c_str(), portaki);
-                                        communicator.send(buf, connecting_fd);
-                                        communicator.destroyBuffer(buf); //yeet
-                                        poios = i;
-                                        break;
-                                    }
-                                }
-                            }
-                            char *buf = communicator.createBuffer();
+
+                            //send to worker
+                            std::cerr << comms[4] << "\n";
+                            char *minima = new char[command.size() + 1];
+                            strcpy(minima, command.c_str());         //eidallws nmzei oti to com.c_str() einai const char *
+                            char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
+                            communicator.put(buf, minima);           //vazw to minima sto buf
+                            pthread_mutex_lock(&skonaki_lock);
                             uint16_t portaki = skonaki.items[poios].my_port;
-                            int listening_fd = Communication::create_listening_socket(portaki, 100);
-                            communicator.recv(buf, listening_fd);
+                            int connecting_fd = Communication::create_connecting_socket(skonaki.items[poios].my_ip.c_str(), portaki);
+                            communicator.send(buf, connecting_fd);
+                            pthread_mutex_unlock(&skonaki_lock);
+                            //communicator.destroyBuffer(buf); //yeet
+
+                            //char *buf = communicator.createBuffer();
+                            //uint16_t portaki = skonaki.items[poios].my_port;
+                            //int listening_fd = Communication::create_listening_socket(portaki, 100);
+                            //communicator.recv(buf, listening_fd);
+                            communicator.recv(buf, pthreadargs->s);
                             if (string(buf) == "ERR") //an lathos command, fail++;
                             {
                                 fprintf(stderr, "Error - unknown or wrongly typed command.\n");
@@ -563,9 +541,11 @@ void *service(void *args)
                                 strcpy(minima, command.c_str());         //eidallws nmzei oti to com.c_str() einai const char *
                                 char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
                                 communicator.put(buf, minima);           //vazw to minima sto buf
+                                pthread_mutex_lock(&skonaki_lock);
                                 uint16_t portaki = skonaki.items[i].my_port;
                                 int connecting_fd = Communication::create_connecting_socket(skonaki.items[i].my_ip.c_str(), portaki);
                                 communicator.send(buf, connecting_fd);
+                                pthread_mutex_unlock(&skonaki_lock);
                                 communicator.destroyBuffer(buf); //yeet
                             }
                             //replies time
@@ -574,9 +554,10 @@ void *service(void *args)
                             for (int i = 0; i < posoi; i++) //receive apo olous
                             {
                                 char *buf = communicator.createBuffer();
-                                uint16_t portaki = skonaki.items[i].my_port;
-                                int listening_fd = Communication::create_listening_socket(portaki, 100);
-                                communicator.recv(buf, listening_fd);
+                                //uint16_t portaki = skonaki.items[i].my_port;
+                                //int listening_fd = Communication::create_listening_socket(portaki, 100);
+                                communicator.recv(buf, pthreadargs->s);
+                                //communicator.recv(buf, listening_fd);
                                 if (string(buf) == "ERR") //an lathos command, fail++;
                                 {
                                     fprintf(stderr, "Error - unknown or wrongly typed command.\n");
@@ -622,16 +603,14 @@ void *service(void *args)
                         {
                             //uparxei?
                             bool uparxei = false;
-                            for (int i = 0; i < skonaki.size; i++)
+                            pthread_mutex_lock(&skonaki_lock);
+                            int poios = skonaki.has_country(comms[4]);
+                            pthread_mutex_unlock(&skonaki_lock);
+                            if (poios != -1)
                             {
-                                for (int j = 0; j < skonaki.items[i].my_countries.size; j++)
-                                {
-                                    if (skonaki.items[i].my_countries.items[j] == comms[4])
-                                    {
-                                        uparxei = true;
-                                    }
-                                }
+                                uparxei = true;
                             }
+
                             if (uparxei == false)
                             {
                                 failed++;
@@ -639,32 +618,25 @@ void *service(void *args)
                                 break;
                             }
                             //find se poio worker einai auti i xwra
-                            int poios = -1;
-                            for (int i = 0; i < skonaki.size; i++) //gia kathe xwra
-                            {
-                                for (int j = 0; j < skonaki.items[i].my_countries.size; j++)
-                                {
-                                    if (skonaki.items[i].my_countries.items[j] == comms[4]) //an eisai auti pou psaxnw
-                                    {
-                                        //send to worker
-                                        std::cerr << comms[4] << "\n";
-                                        char *minima = new char[command.size() + 1];
-                                        strcpy(minima, command.c_str());         //eidallws nmzei oti to com.c_str() einai const char *
-                                        char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
-                                        communicator.put(buf, minima);           //vazw to minima sto buf
-                                        uint16_t portaki = skonaki.items[i].my_port;
-                                        int connecting_fd = Communication::create_connecting_socket(skonaki.items[i].my_ip.c_str(), portaki);
-                                        communicator.send(buf, connecting_fd);
-                                        communicator.destroyBuffer(buf); //yeet
-                                        poios = i;
-                                        break;
-                                    }
-                                }
-                            }
-                            char *buf = communicator.createBuffer();
+
+                            //send to worker
+                            std::cerr << comms[4] << "\n";
+                            char *minima = new char[command.size() + 1];
+                            strcpy(minima, command.c_str());         //eidallws nmzei oti to com.c_str() einai const char *
+                            char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
+                            communicator.put(buf, minima);           //vazw to minima sto buf
+                            pthread_mutex_lock(&skonaki_lock);
                             uint16_t portaki = skonaki.items[poios].my_port;
-                            int listening_fd = Communication::create_listening_socket(portaki, 100);
-                            communicator.recv(buf, listening_fd);
+                            int connecting_fd = Communication::create_connecting_socket(skonaki.items[poios].my_ip.c_str(), portaki);
+                            communicator.send(buf, connecting_fd);
+                            pthread_mutex_unlock(&skonaki_lock);
+                            //communicator.destroyBuffer(buf); //yeet
+
+                            //char *buf = communicator.createBuffer();
+                            //uint16_t portaki = skonaki.items[poios].my_port;
+                            //int listening_fd = Communication::create_listening_socket(portaki, 100);
+                            //communicator.recv(buf, listening_fd);
+                            communicator.recv(buf, pthreadargs->s);
                             //communicator.recv(buf, pid_in_out.items[poios].in);
                             if (string(buf) == "ERR") //an lathos command, fail++;
                             {
@@ -690,9 +662,11 @@ void *service(void *args)
                                 strcpy(minima, command.c_str());         //eidallws nmzei oti to com.c_str() einai const char *
                                 char *buf = communicator.createBuffer(); //ftiaxnw ton buffer gia na steilw to mnm
                                 communicator.put(buf, minima);           //vazw to minima sto buf
+                                pthread_mutex_lock(&skonaki_lock);
                                 uint16_t portaki = skonaki.items[i].my_port;
                                 int connecting_fd = Communication::create_connecting_socket(skonaki.items[i].my_ip.c_str(), portaki);
                                 communicator.send(buf, connecting_fd);
+                                pthread_mutex_unlock(&skonaki_lock);
                                 communicator.destroyBuffer(buf); //yeet
                             }
                             //replies time
@@ -700,9 +674,10 @@ void *service(void *args)
                             for (int i = 0; i < posoi; i++) //receive apo olous
                             {
                                 char *buf = communicator.createBuffer();
-                                uint16_t portaki = skonaki.items[i].my_port;
-                                int listening_fd = Communication::create_listening_socket(portaki, 100);
-                                communicator.recv(buf, listening_fd);
+                                //uint16_t portaki = skonaki.items[i].my_port;
+                                //int listening_fd = Communication::create_listening_socket(portaki, 100);
+                                //communicator.recv(buf, listening_fd);
+                                communicator.recv(buf, pthreadargs->s);
                                 if (string(buf) == "ERR") //an lathos command, fail++;
                                 {
                                     fprintf(stderr, "Error - unknown or wrongly typed command.\n");
@@ -730,16 +705,13 @@ void *service(void *args)
                             fprintf(stdout, "\n");
                         }
                     }
-                    /*
                     else
                     {
                         failed++;
-                        std::cerr << "error\n";
+                        fprintf(stderr, "Error - unknown command\n");
+                        exit(EXIT_FAILURE);
                     }
-                } //end while(1)
-                */
-                    // send res to client
-                }
+                } //while true telos
                 pthread_mutex_unlock(&query_file_lock);
             }
             else if (token == 'W') // worker
@@ -806,9 +778,11 @@ void *service(void *args)
                 pthread_mutex_lock(&skonaki_lock);
                 if (skonaki.has_pair(my_pc.my_ip, my_pc.my_port) == -1) //an den uparxei idi to ip-port duet
                 {
+                    //fprintf(stderr, "paw na insert:\t");
+                    my_pc.print_pc();
                     skonaki.insert(my_pc); // bale to PC auto
                 }
-                else //uparxei idi ara elegxw tis xwres -- kanonika den prepei na erthe edw pote
+                else //uparxei idi ara elegxw tis xwres -- kanonika tha erthei edw an pethanei kapoios worker
                 {
                     int thesi = skonaki.has_pair(my_pc.my_ip, my_pc.my_port);
                     for (int j = 0; j < my_pc.my_countries.size; j++)
@@ -816,13 +790,9 @@ void *service(void *args)
                         skonaki.items[thesi].my_countries.insert(my_pc.my_countries.items[j]);
                     }
                 }
-
+                fprintf(stderr, "skonaki capacity: %d and size: %d\ntha tupwsw ti exei mpei edw mesa tr!\n", skonaki.capacity, skonaki.size);
+                skonaki.print();
                 pthread_mutex_unlock(&skonaki_lock);
-
-                // fprintf(stderr, "tha tupwsw ti exei mpei edw mesa tr!\n");
-                // pthread_mutex_lock(&skonaki_lock);
-                // skonaki.print();
-                // pthread_mutex_unlock(&skonaki_lock);
                 com.destroyBuffer(buff);
 
                 // get summaries
@@ -889,10 +859,21 @@ int main(int argc, char const *argv[])
         perror("critical error: arguements");
         exit(EXIT_FAILURE);
     }
+    if (w > 50)
+    {
+        fprintf(stderr, "Number of threads should be no more than 50\n");
+        exit(0);
+    }
 
-    int accept_client_fd = Communication::create_listening_socket(q, 100);
+    //init mutexes?
+    pthread_mutex_init(&skonaki_lock, NULL);
+    pthread_mutex_init(&summ_file_lock, NULL);
+    pthread_mutex_init(&query_file_lock, NULL);
+    pthread_mutex_init(&posoi_worker_lock, NULL);
 
-    int accept_worker_fd = Communication::create_listening_socket(s, 100);
+    int accept_client_fd = Communication::create_listening_socket(q);
+
+    int accept_worker_fd = Communication::create_listening_socket(s);
 
     cout << "Accept clients at port " << q << " via FD: " << accept_client_fd << endl;
 
@@ -906,14 +887,14 @@ int main(int argc, char const *argv[])
 
     pthread_create(&accept_children[1], NULL, accept_workers, (void *)&threadargs);
 
-    pthread_t service_children[w];
+    pthread_t service_children[w]; //var length
 
     for (int i = 0; i < w; i++)
     {
         pthread_create(&service_children[i], NULL, service, (void *)&threadargs);
     }
 
-    cout << "Main thread waiting for children to exit ... " << endl;
+    fprintf(stderr, "Main thread waiting for children to exit ... \n");
 
     for (int i = 0; i < 2; i++)
     {
@@ -928,6 +909,13 @@ int main(int argc, char const *argv[])
     close(accept_client_fd);
 
     close(accept_worker_fd);
+
+    //piazza : termatizei me CTRL + C --> sigint signal handle
+    static struct sigaction act;
+    act.sa_handler = shutdown;
+    sigfillset(&(act.sa_mask));
+    sigaction(SIGINT, &act, NULL);
+    sigaction(SIGQUIT, &act, NULL);
 
     return 0;
 }
