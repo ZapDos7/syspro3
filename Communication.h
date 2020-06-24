@@ -7,6 +7,8 @@
 
 using namespace std;
 
+//#define COMMUNICATOR_DEFAULT_SIZE 4096
+
 //from the book "Unix Programming" by M.J. Rochkind
 ssize_t writeall(int fd, const void *buf, ssize_t nbyte);
 ssize_t readall(int fd, void *buf, ssize_t nbyte);
@@ -16,6 +18,7 @@ class Communication
 public:
     int b;
 
+    //    Communication();
     Communication(int b);
     virtual ~Communication();
 
@@ -39,6 +42,6 @@ public:
     static int create_connecting_socket(const char *ip, uint16_t &port);
 };
 
-#endif
+int accept_socket(int fd);
 
-//read(fd,&message_size,sizeof(int)) -> read message size (piazza)
+#endif

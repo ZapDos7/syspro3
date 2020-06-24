@@ -4,16 +4,16 @@
 
 class Queue
 {
+private:
+    int *data;
+    int start, end, count, POOL_SIZE;
+
 public:
     Queue(int POOL_SIZE);
     virtual ~Queue();
 
     void place(int data);
     int obtain();
-
-private:
-    int *data;
-    int start, end, count, POOL_SIZE;
 };
 
 #endif

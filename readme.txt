@@ -24,7 +24,7 @@ Use:
 - Execution order: server, master/workers, client.
 
 Notes:
-- Arbitrary selection of ports for my project are as follows: serverPort = 57642
+- Arbitrary selection of ports for my project are as follows: client to server connect on 56321 and workers to server on 58987
 - The previously created "Connection" class implements the protocol here as well, expanding the previous version of it so it handles communication between sockets as well as through pipes.
 - When the server receives a message beginning with 'W', it was sent by a worker, and when it begins with 'C', by a client thread.
 - The workers initially send: one integer (size of circular buffer), one integer (how many workers are there), one string (contains info on each worker's IP, PORT and countries it has saved in its database). Afterwards, all workers send their summaries/statistics, which are written in the file "sum_file.txt" in order to reduce the clutter on the terminal.

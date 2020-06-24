@@ -4,9 +4,11 @@
 template <typename T>
 class Array
 {
-public:
+protected:
     int size;
     int capacity;
+
+public:
     T *items;
 
     Array() : size(0), capacity(10)
@@ -22,6 +24,11 @@ public:
     virtual ~Array()
     {
         delete[] items;
+    }
+
+    int getSize()
+    {
+        return size;
     }
 
     void insert(T &item)

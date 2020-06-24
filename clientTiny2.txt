@@ -1,0 +1,27 @@
+/topk-AgeRanges 2 Russia Neurocysticercosis 19-10-1996 07-08-2002
+/numPatientAdmissions Leprosy 20-12-2008 28-01-2018 Vietnam
+/numPatientAdmissions Leprosy 20-12-2008 28-01-2018
+/numPatientAdmissions Leprosy 20-12-2008 28-01-2018 India
+/diseaseFrequency URDO 03-09-2014 25-12-2020 Russia
+/numPatientAdmissions AIDS 02-05-1997 08-10-2001 
+/numPatientDischarges Leprosy 24-07-2012 07-04-2014 
+/diseaseFrequency URDO 22-11-1992 02-06-2015 India
+/numPatientAdmissions Injury 18-12-1992 13-04-2018 
+/numPatientDischarges Kala-Azar 24-12-2009 30-01-2014 
+/numPatientDischarges Tapeworm 27-08-1990 08-12-2018 Vietnam
+/topk-AgeRanges 4 Vietnam COVID-19 15-03-2017 09-09-2019
+/searchPatientRecord q2go9
+/numPatientAdmissions Diabetes 18-09-2019 16-03-2020 
+/searchPatientRecord gqzhu
+/diseaseFrequency Jaundice 09-03-1994 23-07-2002 Russia
+/searchPatientRecord k6bxd
+/topk-AgeRanges 1 Vietnam Babesiosis 02-05-1990 16-03-1999
+/numPatientDischarges H1N1 29-07-2020 01-10-2020 Ukraine
+/topk-AgeRanges 1 Liberia Jaundice 27-10-2012 27-03-2015
+/numPatientDischarges Obesity 05-07-2001 23-12-2010 
+/numPatientAdmissions Gout 07-09-2006 14-12-2006 Liberia
+/numPatientAdmissions Flu 08-07-2015 22-04-2016 
+/topk-AgeRanges 4 Sudan Rabies 19-01-1998 11-10-2012
+/diseaseFrequency Neurocysticercosis 29-12-2012 01-04-2013 India
+/numPatientDischarges Injury 11-04-2009 05-11-2019 
+/diseaseFrequency Plague 22-12-2001 24-12-2003 

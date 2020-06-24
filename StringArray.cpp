@@ -3,10 +3,10 @@
 StringArray::StringArray(int capacity) : Array(capacity)
 {
 }
-StringArray::StringArray()
+StringArray::StringArray() : Array(10)
 {
-    capacity = 10;
 }
+
 StringArray::~StringArray()
 {
 }
@@ -15,10 +15,18 @@ void StringArray::print()
 {
     for (int i = 0; i < size; i++)
     {
-        cout << items[i] << " ";
+        fprintf(stdout, "%s ", items[i].c_str());
     }
+    fprintf(stdout, "\n");
+}
 
-    cout << endl;
+void StringArray::println()
+{
+    for (int i = 0; i < size; i++)
+    {
+        fprintf(stdout, "%s \n", items[i].c_str());
+    }
+    fprintf(stdout, "\n");
 }
 
 bool StringArray::has(std::string name) //an to name uparxei mes to array m

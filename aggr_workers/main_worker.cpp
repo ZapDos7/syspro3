@@ -72,7 +72,8 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
         communicator.destroyBuffer(buf);
     }
 
-    //fprintf(stderr, "o worker %d exei %d xwres\n", child_pid, countries.size);
+    fprintf(stderr, "o worker %d exei:\t", child_pid);
+    countries.print();
 
     char *bufsip = communicator.createBuffer();
     communicator.recv(bufsip, out_fd);
@@ -112,11 +113,13 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
     ip_port.append(to_string(client_sin_port));
     ip_port.append(".");
     ip_port.append(countries.items[0]);
+
     for (int i = 1; i < countries.size; i++)
     {
         ip_port.append(",");
         ip_port.append(countries.items[i]);
     }
+
     char *thasteilw = new char[ip_port.length() + 1];
     strcpy(thasteilw, ip_port.c_str());
     communicator.send(thasteilw, connecting_fd);
@@ -322,30 +325,36 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
             dataset.close();
             //fprintf(stderr, "worker %d going to %d apo %d\n", child_pid, akak, posa_date_arxeia);
             //send summary:
-            for (int f = 0; f < summaries.size; f++)
-            {
-                summary.append(summaries.items[f].diseaseName); //onoma astheneias
-                summary.append("\n");
-                summary.append("Age range 0-20 years: ");
-                summary.append(to_string(summaries.items[f].metr1));
-                summary.append(" cases\n");
-                summary.append("Age range 21-40 years: ");
-                summary.append(to_string(summaries.items[f].metr2));
-                summary.append(" cases\n");
-                summary.append("Age range 41-60 years: ");
-                summary.append(to_string(summaries.items[f].metr3));
-                summary.append(" cases\n");
-                summary.append("Age range 60+ years: ");
-                summary.append(to_string(summaries.items[f].metr4));
-                summary.append(" cases\n");
-                summary.append("\n");
-            }
-            //fprintf(stderr, "\t%s\n", summary.c_str());
+            // -------------------------------------------------
+            //  summaries
+            // -------------------------------------------------
+
+            //            for (int f = 0; f < summaries.size; f++) {
+            //                summary.append(summaries.items[f].diseaseName); //onoma astheneias
+            //                summary.append("\n");
+            //                summary.append("Age range 0-20 years: ");
+            //                summary.append(to_string(summaries.items[f].metr1));
+            //                summary.append(" cases\n");
+            //                summary.append("Age range 21-40 years: ");
+            //                summary.append(to_string(summaries.items[f].metr2));
+            //                summary.append(" cases\n");
+            //                summary.append("Age range 41-60 years: ");
+            //                summary.append(to_string(summaries.items[f].metr3));
+            //                summary.append(" cases\n");
+            //                summary.append("Age range 60+ years: ");
+            //                summary.append(to_string(summaries.items[f].metr4));
+            //                summary.append(" cases\n");
+            //                summary.append("\n");
+            //            }
+            //            fprintf(stderr, "\t%s\n", summary.c_str());
         }
-        char *buf = communicator.createBuffer();
-        communicator.put(buf, summary);
-        communicator.send(buf, connecting_fd);
-        communicator.destroyBuffer(buf);
+
+        //        int s = strlen(summary.c_str());
+        //        printf("s = %d \n", s);
+        //        char *buf = communicator.createBuffer();
+        //        communicator.put(buf, summary);
+        //        communicator.send(buf, connecting_fd);
+        //        communicator.destroyBuffer(buf);
         //closedir(dir);
         //fprintf(stderr, "telos apo %d gia xwra= %s\n", child_pid, countries.items[posa].c_str());
     }
@@ -356,14 +365,12 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
     communicator.send(bufsum, connecting_fd);
     communicator.destroyBuffer(bufsum);
 
-    char * ok = communicator.createBuffer();
+    char *ok = communicator.createBuffer();
     communicator.put(ok, "OK");
     communicator.send(ok, in_fd);
     communicator.destroyBuffer(ok);
 
     fprintf(stderr, "Worker %d ready\n", child_pid);
-
-    //sto listening_fd dexomai Queries
 
     long int total = 0;
     long int success = 0;
@@ -372,22 +379,13 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
 
     while (true)
     {
-        //accept listening_fd
         fprintf(stderr, "Waiting for command...\n");
-        struct sockaddr_in address;
-        socklen_t addrlen = sizeof(address);
-        int new_socket;
-        if ((new_socket = accept(listening_fd, (struct sockaddr *)&address, &addrlen)) < 0)
-        {
-            perror("accept-worker");
-            break;
-        }
-        //else all these:
+        int new_socket = accept_socket(listening_fd); //accept listening_fd
         char *buf = communicator.createBuffer();
-        communicator.recv(buf, listening_fd);
+        communicator.recv(buf, new_socket);
         std::string com(buf); //com is the command as std::string
         communicator.destroyBuffer(buf);
-        fprintf(stderr, "command: %s\n", com.c_str());
+        fprintf(stderr, "command: '%s'\n------------------------------------\n", com.c_str());
         char *cstr = new char[com.length() + 1]; //auto 8a kanw tokenize
         strcpy(cstr, com.c_str());               //copy as string to line sto cstr
         char *pch;
@@ -397,38 +395,8 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
         int counter = 0;
         comms[0] = pch;
         total++;
-        fprintf(stderr, "o worker %d elave %s\n", child_pid, comms[0].c_str());
         //check first word to match with command, check entire command if correct
-        if (comms[0] == "/exit")
-        {
-            //workers -> log files
-            ofstream logfile;
-            std::string onomaarxeiou = "log_file.";
-            onomaarxeiou += to_string(child_pid);
-            logfile.open(onomaarxeiou);
-            for (int i = 0; i < countries.size; i++) //grafw poies einai oi xwres m
-            {
-                logfile << countries.items[i] << "\n";
-            }
-            logfile << "TOTAL: " << total << "\n";     //posa erwthmata mou irthan
-            logfile << "SUCCESS: " << success << "\n"; //posa success
-            logfile << "FAIL: " << failed << "\n";     //posa fail
-            logfile.close();
-
-            std::string results = "";
-            results.append(to_string(total));
-            results.append(",");
-            results.append(to_string(success));
-            results.append(",");
-            results.append(to_string(failed));
-            char *buf = communicator.createBuffer();
-            communicator.put(buf, results);
-            //communicator.send(buf, in_fd);
-            communicator.send(buf, connecting_fd); //ta stelnw ston server
-
-            return 0;
-        }
-        else if (comms[0] == "/diseaseFrequency") //8. /diseaseFrequency virusName date1 date2 [country]
+        if (comms[0] == "/diseaseFrequency") //8. /diseaseFrequency virusName date1 date2 [country]
         {
             while (pch != NULL)
             {
@@ -445,7 +413,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, "IDK");
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     failed++;
                 }
@@ -458,8 +426,9 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     {
                         char *buf = communicator.createBuffer();
                         communicator.put(buf, "ERR");
+                        fprintf(stderr, "err\n");
                         //communicator.send(buf, in_fd);
-                        communicator.send(buf, connecting_fd); //ta stelnw ston server
+                        communicator.send(buf, new_socket); //ta stelnw ston server
                         communicator.destroyBuffer(buf);
                         failed++;
                         //break;
@@ -471,8 +440,9 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     {
                         char *buf = communicator.createBuffer();
                         communicator.put(buf, "ERR");
+                        fprintf(stderr, "err\n");
                         //communicator.send(buf, in_fd);
-                        communicator.send(buf, connecting_fd); //ta stelnw ston server
+                        communicator.send(buf, new_socket); //ta stelnw ston server
                         communicator.destroyBuffer(buf);
                         failed++;
                         //break;
@@ -484,8 +454,9 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                         failed++;
                         char *buf = communicator.createBuffer();
                         communicator.put(buf, "IDK");
+                        fprintf(stderr, "idk\n");
                         //communicator.send(buf, in_fd);
-                        communicator.send(buf, connecting_fd); //ta stelnw ston server
+                        communicator.send(buf, new_socket); //ta stelnw ston server
                         communicator.destroyBuffer(buf);
                     }
                     else
@@ -494,8 +465,9 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                         std::string reply = to_string(apantisi_num);
                         char *buf = communicator.createBuffer();
                         communicator.put(buf, reply.c_str());
+                        fprintf(stderr, "reply: %ld\n", apantisi_num);
                         //communicator.send(buf, in_fd);
-                        communicator.send(buf, connecting_fd); //ta stelnw ston server
+                        communicator.send(buf, new_socket); //ta stelnw ston server
                         communicator.destroyBuffer(buf);
                         success++;
                     }
@@ -511,8 +483,9 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     //std::cerr << "error1\n";
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, "ERR");
+                    fprintf(stderr, "err\n");
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     failed++;
                     break;
@@ -525,8 +498,9 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     //std::cerr << "error2\n";
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, "ERR");
+                    fprintf(stderr, "err\n");
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     failed++;
                     break;
@@ -535,21 +509,23 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 block *apantisi = diseaseHT.search(virusName);
                 if (apantisi == NULL) //mou zitas na brw kati pou den exw sti vasi m
                 {
-                    //std::cerr << "error5\n";
+                    fprintf(stderr, "apantisi = null\n");
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, "IDK");
+                    fprintf(stderr, "idk\n");
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     failed++;
                 }
                 else
                 {
-                    std::string reply = to_string(apantisi->stats(d1, d2));
+                    int replyInt = apantisi->stats(d1, d2);
                     char *buf = communicator.createBuffer();
-                    communicator.put(buf, reply.c_str());
+                    communicator.put(buf, replyInt);
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    fprintf(stderr, "reply: %d\n", replyInt);
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     success++;
                 }
@@ -560,7 +536,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 char *buf = communicator.createBuffer();
                 communicator.put(buf, "ERR");
                 //communicator.send(buf, in_fd);
-                communicator.send(buf, connecting_fd); //ta stelnw ston server
+                communicator.send(buf, new_socket); //ta stelnw ston server
                 communicator.destroyBuffer(buf);
                 failed++;
             }
@@ -580,7 +556,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 char *buf = communicator.createBuffer();
                 communicator.put(buf, "ERR");
                 //communicator.send(buf, in_fd);
-                communicator.send(buf, connecting_fd); //ta stelnw ston server
+                communicator.send(buf, new_socket); //ta stelnw ston server
                 communicator.destroyBuffer(buf);
             }
             int k = atoi(comms[1].c_str());
@@ -593,7 +569,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 char *buf = communicator.createBuffer();
                 communicator.put(buf, "IDK");
                 //communicator.send(buf, in_fd);
-                communicator.send(buf, connecting_fd); //ta stelnw ston server
+                communicator.send(buf, new_socket); //ta stelnw ston server
                 communicator.destroyBuffer(buf);
                 //std::cerr << countryName << " 0\n";
             } //age ranges: 0-20, 21-40, 41-60, 60+
@@ -607,7 +583,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, "ERR");
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     failed++;
                     //break;
@@ -620,7 +596,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, "ERR");
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     failed++;
                     //std::cerr << "error\n";
@@ -631,7 +607,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 char *buf = communicator.createBuffer();
                 communicator.put(buf, apantisi.c_str());
                 //communicator.send(buf, in_fd);
-                communicator.send(buf, connecting_fd); //ta stelnw ston server
+                communicator.send(buf, new_socket); //ta stelnw ston server
                 communicator.destroyBuffer(buf);
                 success++;
             }
@@ -651,7 +627,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 char *buf = communicator.createBuffer();
                 communicator.put(buf, "ERR");
                 //communicator.send(buf, in_fd);
-                communicator.send(buf, connecting_fd); //ta stelnw ston server
+                communicator.send(buf, new_socket); //ta stelnw ston server
                 failed++;
             }
             else
@@ -662,7 +638,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, "IDK");
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     failed++;
                 }
                 else
@@ -686,7 +662,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, apantisi);
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     success++;
                 }
             }
@@ -707,7 +683,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 char *buf = communicator.createBuffer();
                 communicator.put(buf, "ERR");
                 //communicator.send(buf, in_fd);
-                communicator.send(buf, connecting_fd); //ta stelnw ston server
+                communicator.send(buf, new_socket); //ta stelnw ston server
                 communicator.destroyBuffer(buf);
                 failed++;
                 //break;
@@ -720,7 +696,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 char *buf = communicator.createBuffer();
                 communicator.put(buf, "ERR");
                 //communicator.send(buf, in_fd);
-                communicator.send(buf, connecting_fd); //ta stelnw ston server
+                communicator.send(buf, new_socket); //ta stelnw ston server
                 communicator.destroyBuffer(buf);
                 failed++;
                 //break;
@@ -732,7 +708,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 char *buf = communicator.createBuffer();
                 communicator.put(buf, "ERR");
                 //communicator.send(buf, in_fd);
-                communicator.send(buf, connecting_fd); //ta stelnw ston server
+                communicator.send(buf, new_socket); //ta stelnw ston server
                 communicator.destroyBuffer(buf);
             }
             else if (counter == 4) //oxi basei country
@@ -743,7 +719,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, "IDK");
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     success++;
                 }
@@ -764,7 +740,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, reply.c_str());
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     success++;
                 }
@@ -778,7 +754,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, "IDK");
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     failed++;
                 }
@@ -789,7 +765,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, reply.c_str());
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     success++;
                 }
@@ -811,7 +787,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 char *buf = communicator.createBuffer();
                 communicator.put(buf, "ERR");
                 //communicator.send(buf, in_fd);
-                communicator.send(buf, connecting_fd); //ta stelnw ston server
+                communicator.send(buf, new_socket); //ta stelnw ston server
                 communicator.destroyBuffer(buf);
                 failed++;
                 //break;
@@ -824,7 +800,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 char *buf = communicator.createBuffer();
                 communicator.put(buf, "ERR");
                 //communicator.send(buf, in_fd);
-                communicator.send(buf, connecting_fd); //ta stelnw ston server
+                communicator.send(buf, new_socket); //ta stelnw ston server
                 communicator.destroyBuffer(buf);
                 failed++;
                 //break;
@@ -836,7 +812,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                 char *buf = communicator.createBuffer();
                 communicator.put(buf, "ERR");
                 //communicator.send(buf, in_fd);
-                communicator.send(buf, connecting_fd); //ta stelnw ston server
+                communicator.send(buf, new_socket); //ta stelnw ston server
                 communicator.destroyBuffer(buf);
             }
             else if (counter == 4) //oxi basei country
@@ -847,7 +823,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, "IDK");
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     success++;
                 }
@@ -868,7 +844,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, reply.c_str());
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     success++;
                 }
@@ -882,7 +858,7 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, "IDK");
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     failed++;
                 }
@@ -893,11 +869,16 @@ int main_worker(char *in_dir, int b, string name_out, string name_in)
                     char *buf = communicator.createBuffer();
                     communicator.put(buf, reply.c_str());
                     //communicator.send(buf, in_fd);
-                    communicator.send(buf, connecting_fd); //ta stelnw ston server
+                    communicator.send(buf, new_socket); //ta stelnw ston server
                     communicator.destroyBuffer(buf);
                     success++;
                 }
             }
+        }
+        else if (comms[0] == "/exit")
+        {
+            fprintf(stderr, "worker %d [port:%d] exiting...\n", child_pid, client_sin_port);
+            return 0;
         }
         else
         {

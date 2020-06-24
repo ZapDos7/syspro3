@@ -4,7 +4,7 @@
 #include "PortCountries.h"
 #include "../Array.h"
 
-class PCArray : public Array<PortCountries>
+class PCArray : public Array<PortCountries *>
 {
 private:
 public:

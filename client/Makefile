@@ -3,8 +3,8 @@ CFLAGS=-c -Wpedantic -Ofast -Wall -ggdb3
 SOURCES=client.cpp ../Communication.cpp ../StringArray.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE= whoClient
-ARGS= -q ../client.txt -numThreads 10 -sp 57642 -sip 127.0.0.1 #test with big client file
-#ARGS= -q ../clientTiny.txt -numThreads 10 -sp 57642 -sip 127.0.0.1 #test with small client file
+ARGS= -q ../client.txt -numThreads 10 -sp 56321 -sip 127.0.0.1 #test with big client file
+ARGST= -q ../clientTiny.txt -numThreads 1 -sp 56321 -sip 127.0.0.1 #test with small client file
 #-q query file -numthreads -sp ServerPort -sip ServerIP
 VAL=valgrind --leak-check=full
 
@@ -24,3 +24,9 @@ clean:
 
 val:
 	$(VAL) ./$(EXECUTABLE) $(FILE) $(ARGS)
+
+valt:
+	$(VAL) ./$(EXECUTABLE) $(FILE) $(ARGST)
+
+test:
+	./$(EXECUTABLE) $(FILE) $(ARGST)

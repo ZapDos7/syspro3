@@ -54,8 +54,12 @@ ssize_t readall(int fd, void *buf, ssize_t nbyte)
     return nread;
 }
 
+//Communication::Communication() : b(COMMUNICATOR_DEFAULT_SIZE) {
+//}
+
 Communication::Communication(int b) : b(b)
 {
+    //cout << "communication created with b = " << b << endl;
 }
 
 Communication::~Communication()
@@ -293,25 +297,46 @@ int Communication::create_listening_socket(uint16_t &port)
 
 int Communication::create_connecting_socket(const char *ip, uint16_t &port)
 {
-    struct sockaddr_in client_addr; //edw 8a m leei o server ti thelei
-    socklen_t client_addr_l = sizeof(client_addr);
+    struct sockaddr_in server; //edw 8a m leei o server ti thelei
+    socklen_t server_addr_l = sizeof(server);
+    struct hostent *rem;
     int fd;
 
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        printf("\n Socket creation error1 \n");
-        exit(EXIT_FAILURE);
+        perror("\n Socket creation error1 \n");
+        return -1;
     }
 
-    client_addr.sin_family = AF_INET;
-    client_addr.sin_port = htons(port);
-    client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if (connect(fd, (struct sockaddr *)&client_addr, client_addr_l) < 0)
+    if ((rem = gethostbyname(ip)) == NULL)
     {
-        printf("\nConnection Failed \n");
-        exit(EXIT_FAILURE);
+        herror("gethostbyname");
+        return -1;
+    }
+
+    memcpy(&server.sin_addr, rem->h_addr, rem->h_length);
+    server.sin_family = AF_INET;
+    server.sin_port = htons(port);
+
+    if (connect(fd, (struct sockaddr *)&server, server_addr_l) < 0)
+    {
+        perror("Connection Failed");
+        return -1;
     }
 
     return fd;
+}
+
+int accept_socket(int fd)
+{
+    struct sockaddr_in address;
+    socklen_t addrlen = sizeof(address);
+    int new_socket;
+    if ((new_socket = accept(fd,  (struct sockaddr *)&address, &addrlen))<0)
+    {
+        perror("accept failed");
+        return -1;
+    }
+    //else
+    return new_socket;
 }

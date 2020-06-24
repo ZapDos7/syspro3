@@ -17,6 +17,7 @@ public:
     virtual ~StringArray();
 
     virtual void print();
+    virtual void println();
     bool has(std::string name); //an to name uparxei mes to array m
 };
 

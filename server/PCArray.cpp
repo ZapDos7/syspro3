@@ -2,9 +2,6 @@
 
 PCArray::PCArray()
 {
-    this->capacity = 5;
-    this->size = 0;
-    this->items = new PortCountries[capacity];
 }
 
 PCArray::PCArray(int capacity) : Array(capacity)
@@ -16,16 +13,16 @@ void PCArray::print()
 {
     for (int i = 0; i < size; i++)
     {
-        items[i].print_pc();
+        items[i]->print_pc();
     }
-    std::cout << std::endl;
+    fprintf(stdout, "\n");
 }
 
 int PCArray::has_pair(std::string ip, int port)
 {
     for (int i = 0; i < this->size; i++)
     {
-        if ((this->items[i].my_ip == ip) && (this->items[i].my_port == port))
+        if ((this->items[i]->my_ip == ip) && (this->items[i]->my_port == port))
         {
             return i;
         }
@@ -37,9 +34,9 @@ int PCArray::has_country(std::string countryName)
 {
     for (int i = 0; i < this->size; i++)
     {
-        for (int j = 0; j < this->items[i].my_countries.size; j++)
+        for (int j = 0; j < this->items[i]->my_countries.getSize(); j++)
         {
-            if (this->items[i].my_countries.items[j] == countryName)
+            if (this->items[i]->my_countries.items[j] == countryName)
             {
                 return i;
             }
