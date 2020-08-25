@@ -32,3 +32,5 @@ Notes:
 Sources:
 - class' notes
 - My previous projects for this course.
+
+Final Grade: 82%
